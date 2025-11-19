@@ -15,6 +15,14 @@ python pcap_to_itch.py C:\data\dev\fin556\group_01_project\anton\data\nasdaq_pca
 python nasdaq_loader.py C:\data\dev\fin556\group_01_project\anton\data\nasdaq_pcaps\ny4-xnas-tvitch-a-20250401T083000.itch  SPY -o spy_trades_2.csv
 ```
 
+```
+python new_nasdaq_ss_builder.py C:\data\dev\fin556\group_01_project\anton\data\nasdaq_pcaps\ny4-xnas-tvitch-a-20250401T083000_2.itch USO 2025-01-10 -o tick_USO_20250110.txt
+```
+
+
+python nasdaq_ss_tick_builder.py C:\path\to\file.itch USO 2025-01-10 -o tick_USO_20250110.txt
+
+
 # Expected output
 
 ```csv
