@@ -8,6 +8,13 @@ python pcap_to_itch.py ABSOLUTE_PATH_RAW_PCAP ABSOLUTE_PATH_TO_ITCH_FILE
 python nasdaq_loader.py ABSOLUTE_PATH_TO_ITCH_FILE  SPY -o spy_trades.csv
 ```
 
+```
+python pcap_to_itch.py C:\data\dev\fin556\group_01_project\anton\data\nasdaq_pcaps\ny4-xnas-tvitch-a-20250401T083000.pcap C:\data\dev\fin556\group_01_project\anton\data\nasdaq_pcaps\ny4-xnas-tvitch-a-20250401T083000.itch
+```
+```
+python nasdaq_loader.py C:\data\dev\fin556\group_01_project\anton\data\nasdaq_pcaps\ny4-xnas-tvitch-a-20250401T083000.itch  SPY -o spy_trades_2.csv
+```
+
 # Expected output
 
 ```csv

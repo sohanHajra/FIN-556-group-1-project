@@ -1,7 +1,9 @@
 colorama==0.4.6
+dpkt==1.9.8
 iniconfig==2.3.0
 itchfeed==1.0.6
 packaging==25.0
 pluggy==1.6.0
 Pygments==2.19.2
 pytest==9.0.1
+scapy==2.6.1
