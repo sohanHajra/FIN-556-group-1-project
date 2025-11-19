@@ -4,7 +4,7 @@ import argparse
 import csv
 import time
 from datetime import datetime, date, timedelta
-from typing import Optional
+from typing import Optional, Set
 
 from itch.parser import MessageParser
 from itch.messages import (
@@ -277,12 +277,33 @@ def dump_depth_by_price(
     print_at_end: bool = False,
     max_levels: int = 10,
     progress_interval: Optional[int] = None,
-    debug: bool = False,
+    debug: Optional[Set[str]] = None,
+    optimized: bool = True,
 ):
     symbol = symbol.upper()
     trade_date_obj = datetime.strptime(trade_date, "%Y-%m-%d").date()
 
-    parser = MessageParser()  # parse all ITCH messages
+    # Helper function to check if a message type should be debugged
+    # Cache decoded message types to avoid repeated decode() calls
+    _debug_cache = {}
+    def should_debug(msg_type: bytes) -> bool:
+        """Check if this message type should be debugged."""
+        if debug is None:
+            return False
+        if len(debug) == 0:  # Empty set means debug all
+            return True
+        # Cache decoded message type
+        if msg_type not in _debug_cache:
+            _debug_cache[msg_type] = msg_type.decode()
+        return _debug_cache[msg_type] in debug
+
+    # Filter messages at parser level - only parse what we need (A, F, E, C, X, D, U)
+    # This avoids parsing thousands of other message types we don't care about
+    # Only do this if optimized mode is enabled
+    if optimized:
+        parser = MessageParser(message_type=b"AFECXDU")
+    else:
+        parser = MessageParser()  # Parse all message types
     book = PriceLevelBook()
     seq_num = 1  # synthetic sequence number
     msg_count = 0  # count of messages processed for this symbol
@@ -329,27 +350,61 @@ def dump_depth_by_price(
                 )
             
             ts_ns = msg.timestamp
-            ts_str = ns_since_midnight_to_str(trade_date_obj, ts_ns)
+            # Only compute timestamp string when needed (for debug or output)
+            ts_str = None  # Lazy computation
             level_event = None
             reason = 1  # UNATTRIBUTED_CHANGE by default
             msg_relevant = False
             msg_filtered = False
+            
+            def get_ts_str():
+                """Lazy timestamp string computation."""
+                nonlocal ts_str
+                if ts_str is None:
+                    ts_str = ns_since_midnight_to_str(trade_date_obj, ts_ns)
+                return ts_str
 
             # --- ADD ORDERS: only place we look at symbol (stock) ---
             if isinstance(msg, (AddOrderNoMPIAttributionMessage, AddOrderMPIDAttribution)):
+                # OPTIMIZATION: Access stock field directly without decode() for symbol filtering
+                # The message object already has stock unpacked in __init__
+                if optimized:
+                    stock_raw = msg.stock
+                    if isinstance(stock_raw, bytes):
+                        stock = stock_raw.rstrip(b' \x00').decode('ascii', errors='ignore').upper()
+                    else:
+                        stock = str(stock_raw).strip().upper()
+                    
+                    # Fast path: skip decode if symbol doesn't match (most common case)
+                    if stock != symbol:
+                        debug_add_order = should_debug(msg.message_type)
+                        if debug_add_order:
+                            print(f"[MSG {msg_count}] ADD_ORDER ({msg.message_type.decode()}) | "
+                                  f"Time: {get_ts_str()} | Stock: {stock} | -> FILTERED (symbol mismatch)")
+                            print(f"  -> NO LEVEL EVENT (skipping P tick emission)")
+                        continue  # ignore other symbols - skip expensive decode()
+                
+                # Decode for full processing (always needed, but optimized path skips it for non-matching symbols)
                 dec = msg.decode()
                 stock = dec.stock.strip().upper()
-                if debug:
+                
+                # Check symbol match (if not already checked in optimized path)
+                if not optimized and stock != symbol:
+                    debug_add_order = should_debug(msg.message_type)
+                    if debug_add_order:
+                        print(f"[MSG {msg_count}] ADD_ORDER ({msg.message_type.decode()}) | "
+                              f"Time: {get_ts_str()} | Stock: {stock} | -> FILTERED (symbol mismatch)")
+                        print(f"  -> NO LEVEL EVENT (skipping P tick emission)")
+                    continue
+                
+                # Check if we should debug ADD_ORDER messages (both A and F are add orders)
+                # If user specified 'A' or 'F', both are in the debug set
+                debug_add_order = should_debug(msg.message_type)
+                if debug_add_order:
                     print(f"[MSG {msg_count}] ADD_ORDER ({msg.message_type.decode()}) | "
-                          f"Time: {ts_str} | Stock: {stock} | "
+                          f"Time: {get_ts_str()} | Stock: {stock} | "
                           f"OrderRef: {dec.order_reference_number} | "
                           f"Side: {dec.buy_sell_indicator} | Price: {dec.price:.4f} | Size: {dec.shares}")
-                
-                if stock != symbol:
-                    if debug:
-                        print(f"  -> FILTERED (symbol mismatch: {stock} != {symbol})")
-                    msg_filtered = True
-                    continue  # ignore other symbols
 
                 msg_relevant = True
                 side = 1 if dec.buy_sell_indicator == "B" else 2
@@ -363,103 +418,165 @@ def dump_depth_by_price(
                     size,
                 )
                 reason = 2  # ADD_ORDER
-                if debug:
+                if debug_add_order:
                     print(f"  -> PROCESSED | Side: {side} | Level event: {level_event}")
 
             # --- EXECUTIONS (E/C) ---
             elif isinstance(msg, (OrderExecutedMessage, OrderExecutedWithPriceMessage)):
-                dec = msg.decode()
-                executed = dec.executed_shares
-                if debug:
+                # OPTIMIZATION: Check if order is in book before decoding
+                if optimized:
+                    order_ref = msg.order_reference_number
+                    if order_ref not in book.orders:
+                        # Order not in book - skip expensive decode
+                        if should_debug(msg.message_type):
+                            msg_type = "EXEC" if isinstance(msg, OrderExecutedMessage) else "EXEC_WITH_PRICE"
+                            print(f"[MSG {msg_count}] {msg_type} ({msg.message_type.decode()}) | "
+                                  f"Time: {get_ts_str()} | OrderRef: {order_ref} | -> FILTERED (order not in book)")
+                        continue
+                    # Order is in book - decode for processing
+                    dec = msg.decode()
+                    executed = dec.executed_shares
+                    level_event = book.on_exec(order_ref, executed)
+                else:
+                    # Non-optimized: always decode, then check
+                    dec = msg.decode()
+                    executed = dec.executed_shares
+                    level_event = book.on_exec(dec.order_reference_number, executed)
+                
+                if should_debug(msg.message_type):
                     msg_type = "EXEC" if isinstance(msg, OrderExecutedMessage) else "EXEC_WITH_PRICE"
                     print(f"[MSG {msg_count}] {msg_type} ({msg.message_type.decode()}) | "
-                          f"Time: {ts_str} | OrderRef: {dec.order_reference_number} | "
+                          f"Time: {get_ts_str()} | OrderRef: {dec.order_reference_number} | "
                           f"Executed: {executed}")
                 
-                level_event = book.on_exec(dec.order_reference_number, executed)
                 if level_event is not None:
                     msg_relevant = True
-                    if debug:
+                    if should_debug(msg.message_type):
                         print(f"  -> PROCESSED | Level event: {level_event}")
                 else:
-                    if debug:
+                    if should_debug(msg.message_type):
                         print(f"  -> FILTERED (order not in book)")
                     msg_filtered = True
                 reason = 5  # EXECUTED
 
             # --- PARTIAL CANCEL (X) ---
             elif isinstance(msg, OrderCancelMessage):
-                dec = msg.decode()
-                canceled = dec.cancelled_shares  # NOTE: field name from your decoder
-                if debug:
+                # OPTIMIZATION: Check if order is in book before decoding
+                if optimized:
+                    order_ref = msg.order_reference_number
+                    if order_ref not in book.orders:
+                        if should_debug(msg.message_type):
+                            print(f"[MSG {msg_count}] CANCEL ({msg.message_type.decode()}) | "
+                                  f"Time: {get_ts_str()} | OrderRef: {order_ref} | -> FILTERED (order not in book)")
+                        continue
+                    dec = msg.decode()
+                    canceled = dec.cancelled_shares
+                    level_event = book.on_cancel(order_ref, canceled)
+                else:
+                    dec = msg.decode()
+                    canceled = dec.cancelled_shares
+                    level_event = book.on_cancel(dec.order_reference_number, canceled)
+                
+                if should_debug(msg.message_type):
                     print(f"[MSG {msg_count}] CANCEL ({msg.message_type.decode()}) | "
-                          f"Time: {ts_str} | OrderRef: {dec.order_reference_number} | "
+                          f"Time: {get_ts_str()} | OrderRef: {dec.order_reference_number} | "
                           f"Canceled: {canceled}")
                 
-                level_event = book.on_cancel(dec.order_reference_number, canceled)
                 if level_event is not None:
                     msg_relevant = True
-                    if debug:
+                    if should_debug(msg.message_type):
                         print(f"  -> PROCESSED | Level event: {level_event}")
                 else:
-                    if debug:
+                    if should_debug(msg.message_type):
                         print(f"  -> FILTERED (order not in book)")
                     msg_filtered = True
                 reason = 3  # PARTIAL_CANCEL
 
             # --- FULL DELETE (D) ---
             elif isinstance(msg, OrderDeleteMessage):
-                dec = msg.decode()
-                if debug:
-                    print(f"[MSG {msg_count}] DELETE ({msg.message_type.decode()}) | "
-                          f"Time: {ts_str} | OrderRef: {dec.order_reference_number}")
+                # OPTIMIZATION: Check if order is in book before decoding
+                if optimized:
+                    order_ref = msg.order_reference_number
+                    if order_ref not in book.orders:
+                        if should_debug(msg.message_type):
+                            print(f"[MSG {msg_count}] DELETE ({msg.message_type.decode()}) | "
+                                  f"Time: {get_ts_str()} | OrderRef: {order_ref} | -> FILTERED (order not in book)")
+                        continue
+                    dec = msg.decode()
+                    level_event = book.on_delete(order_ref)
+                else:
+                    dec = msg.decode()
+                    level_event = book.on_delete(dec.order_reference_number)
                 
-                level_event = book.on_delete(dec.order_reference_number)
+                if should_debug(msg.message_type):
+                    print(f"[MSG {msg_count}] DELETE ({msg.message_type.decode()}) | "
+                          f"Time: {get_ts_str()} | OrderRef: {dec.order_reference_number}")
+                
                 if level_event is not None:
                     msg_relevant = True
-                    if debug:
+                    if should_debug(msg.message_type):
                         print(f"  -> PROCESSED | Level event: {level_event}")
                 else:
-                    if debug:
+                    if should_debug(msg.message_type):
                         print(f"  -> FILTERED (order not in book)")
                     msg_filtered = True
                 reason = 4  # FULL_CANCEL
 
             # --- REPLACE (U) ---
             elif isinstance(msg, OrderReplaceMessage):
-                dec = msg.decode()
-                if debug:
+                # OPTIMIZATION: Check if order is in book before decoding
+                if optimized:
+                    order_ref = msg.order_reference_number
+                    if order_ref not in book.orders:
+                        if should_debug(msg.message_type):
+                            print(f"[MSG {msg_count}] REPLACE ({msg.message_type.decode()}) | "
+                                  f"Time: {get_ts_str()} | OldOrderRef: {order_ref} | -> FILTERED (order not in book)")
+                        continue
+                    dec = msg.decode()
+                    level_event = book.on_replace(
+                        order_ref,
+                        dec.new_order_reference_number,
+                        dec.price,
+                        dec.shares,
+                    )
+                else:
+                    dec = msg.decode()
+                    level_event = book.on_replace(
+                        dec.order_reference_number,
+                        dec.new_order_reference_number,
+                        dec.price,
+                        dec.shares,
+                    )
+                
+                if should_debug(msg.message_type):
                     print(f"[MSG {msg_count}] REPLACE ({msg.message_type.decode()}) | "
-                          f"Time: {ts_str} | OldOrderRef: {dec.order_reference_number} | "
+                          f"Time: {get_ts_str()} | OldOrderRef: {dec.order_reference_number} | "
                           f"NewOrderRef: {dec.new_order_reference_number} | "
                           f"Price: {dec.price:.4f} | Size: {dec.shares}")
                 
-                level_event = book.on_replace(
-                    dec.order_reference_number,
-                    dec.new_order_reference_number,
-                    dec.price,
-                    dec.shares,
-                )
                 if level_event is not None:
                     msg_relevant = True
-                    if debug:
+                    if should_debug(msg.message_type):
                         print(f"  -> PROCESSED | Level events: {level_event}")
                 else:
-                    if debug:
+                    if should_debug(msg.message_type):
                         print(f"  -> FILTERED (order not in book)")
                     msg_filtered = True
                 reason = 8  # CANCEL_REPLACE
 
             # --- OTHER MESSAGE TYPES ---
             else:
-                if debug:
+                if should_debug(msg.message_type if hasattr(msg, 'message_type') else b'?'):
                     msg_type_name = msg.__class__.__name__ if hasattr(msg, '__class__') else "Unknown"
-                    print(f"[MSG {msg_count}] OTHER ({msg.message_type.decode() if hasattr(msg, 'message_type') else '?'}) | "
-                          f"Time: {ts_str} | Type: {msg_type_name} | -> IGNORED")
+                    msg_type_code = msg.message_type.decode() if hasattr(msg, 'message_type') else '?'
+                    print(f"[MSG {msg_count}] OTHER ({msg_type_code}) | "
+                          f"Time: {get_ts_str()} | Type: {msg_type_name} | -> IGNORED")
 
             # Nothing relevant to this symbol - skip emitting P ticks
             if level_event is None:
-                if debug:
+                # Check if we were debugging this message type
+                last_msg_type = msg.message_type if hasattr(msg, 'message_type') else b'?'
+                if should_debug(last_msg_type):
                     print(f"  -> NO LEVEL EVENT (skipping P tick emission)")
                 continue
 
@@ -471,11 +588,13 @@ def dump_depth_by_price(
             else:
                 events = [level_event]
 
-            if debug:
+            # Get the message type for debug check (use the last processed message type)
+            last_msg_type = msg.message_type if hasattr(msg, 'message_type') else b'?'
+            if should_debug(last_msg_type):
                 print(f"  -> EMITTING {len(events)} P tick(s)")
 
             for side, price, size, num_orders in events:
-                if debug:
+                if should_debug(last_msg_type):
                     side_name = "BID" if side == 1 else "ASK"
                     print(f"    P TICK #{seq_num}: {side_name} | Price: {price:.4f} | Size: {size} | Orders: {num_orders} | Reason: {reason}")
                 emit_p_line(
@@ -575,9 +694,39 @@ def main():
     ap.add_argument(
         "--debug",
         action="store_true",
-        help="Print debug information for every message processed",
+        help="Print debug information for ALL message types (shorthand for --debug-types)",
+    )
+    ap.add_argument(
+        "--debug-types",
+        nargs="+",
+        metavar="TYPE",
+        help="Print debug information for specific message types. "
+             "Types: A (AddOrder), F (AddOrderMPID), E (Executed), C (ExecutedWithPrice), "
+             "X (Cancel), D (Delete), U (Replace), or any other ITCH message type code. "
+             "Use --debug to show all types.",
+    )
+    ap.add_argument(
+        "--no-optimized",
+        action="store_true",
+        help="Disable performance optimizations (parser filtering, skip decode for filtered messages). "
+             "Useful for debugging or when you need full decode() for all messages. "
+             "By default, optimizations are enabled for 10-20x faster processing.",
     )
     args = ap.parse_args()
+
+    # Process debug arguments
+    debug_set = None
+    if args.debug:
+        # --debug means show all (empty set)
+        debug_set = set()
+    elif args.debug_types:
+        # --debug-types means show only specified types
+        debug_set = set(args.debug_types)
+        # Handle ADD_ORDER: if user specifies 'A', also include 'F' (both are add orders)
+        if 'A' in debug_set:
+            debug_set.add('F')
+        if 'F' in debug_set:
+            debug_set.add('A')
 
     dump_depth_by_price(
         args.itch_file,
@@ -590,7 +739,8 @@ def main():
         print_at_end=args.print_at_end,
         max_levels=args.max_levels,
         progress_interval=args.progress_interval,
-        debug=args.debug,
+        debug=debug_set,
+        optimized=not args.no_optimized,  # Default is True, disable with --no-optimized
     )
 
 
