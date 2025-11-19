@@ -1,0 +1,16 @@
+.dub
+docs.json
+__dummy.html
+docs/
+/dpls
+dpls.so
+dpls.dylib
+dpls.dll
+dpls.a
+dpls.lib
+dpls-test-*
+*.exe
+*.pdb
+*.o
+*.obj
+*.lst
