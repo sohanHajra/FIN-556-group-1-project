@@ -10,6 +10,8 @@
 #
 # Output is sorted by message_ts (column 2), keeping format identical.
 
+
+# future consideration - add priority or consideration for exchange latency?
 set -euo pipefail
 
 if [ "$#" -ne 3 ]; then
