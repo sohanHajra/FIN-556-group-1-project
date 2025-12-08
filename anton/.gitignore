@@ -24,17 +24,30 @@ data/*
 # But keep the folder itself
 !data/.gitkeep
 
-# === Logs / Outputs ===
-*.log
+# === Output / Generated Files ===
+# Exclude all output folders (generated files - ticks, trades, PCAPs, ITCH files)
+output/
+# Exclude intermediate and generated files (anywhere in repo)
+*.itch
+*.pcap
+*.pcap.*
+*.zst
+# Generated data files
 *.csv
 *.parquet
 *.feather
 *.h5
 *.bin
-*.zst
-*.pcap
-*.pcap.*
 *.json
+*.log
+
+# === Archive / Old Files ===
+old/
+
+# === Debug / Test Files ===
+src/debug/
+debug/
+test_outputs/
 
 # Cache folders
 .cache/

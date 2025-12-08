@@ -18,6 +18,7 @@ which is what itchfeed expects.
 """
 
 import argparse
+import time
 from pathlib import Path
 
 import dpkt
@@ -73,12 +74,37 @@ def pcap_to_itch(pcap_path: Path, itch_out_path: Path, udp_port: int | None = No
     packets_seen = 0
     packets_used = 0
     msgs_written = 0
+    start_time = time.time()
+    last_packet_log = 0
+    last_msg_log = 0
+
+    print(f"[START] Converting PCAP to ITCH format")
+    print(f"  Input:  {pcap_path}")
+    print(f"  Output: {itch_out_path}")
+    if udp_port is not None:
+        print(f"  UDP Port filter: {udp_port}")
+    print()
 
     with pcap_path.open("rb") as f_in, itch_out_path.open("wb") as f_out:
         pcap = dpkt.pcap.Reader(f_in)
 
         for ts, buf in pcap:
             packets_seen += 1
+            
+            # Progress logging every 100k packets
+            if packets_seen - last_packet_log >= 100_000:
+                elapsed = time.time() - start_time
+                packet_rate = packets_seen / elapsed if elapsed > 0 else 0
+                msg_rate = msgs_written / elapsed if elapsed > 0 else 0
+                print(
+                    f"[PROGRESS] Packets: {packets_seen:,} | "
+                    f"UDP packets used: {packets_used:,} | "
+                    f"Messages written: {msgs_written:,} | "
+                    f"Time: {elapsed:.1f}s | "
+                    f"Rate: {packet_rate:,.0f} pkt/s, {msg_rate:,.0f} msg/s"
+                )
+                last_packet_log = packets_seen
+            
             try:
                 eth = dpkt.ethernet.Ethernet(buf)
             except Exception:
@@ -94,7 +120,7 @@ def pcap_to_itch(pcap_path: Path, itch_out_path: Path, udp_port: int | None = No
                 continue
 
             if udp_port is not None:
-                if udp.sport != udp_port and udp.dport != udp_port:
+                if udp.sport != udp_port and udp.dport != udp_port: # type: ignore
                     continue
 
             payload = udp.data
@@ -105,11 +131,40 @@ def pcap_to_itch(pcap_path: Path, itch_out_path: Path, udp_port: int | None = No
             if written > 0:
                 packets_used += 1
                 msgs_written += written
+                
+                # Progress logging every 100k messages
+                if msgs_written - last_msg_log >= 100_000:
+                    elapsed = time.time() - start_time
+                    packet_rate = packets_seen / elapsed if elapsed > 0 else 0
+                    msg_rate = msgs_written / elapsed if elapsed > 0 else 0
+                    print(
+                        f"[PROGRESS] Packets: {packets_seen:,} | "
+                        f"UDP packets used: {packets_used:,} | "
+                        f"Messages written: {msgs_written:,} | "
+                        f"Time: {elapsed:.1f}s | "
+                        f"Rate: {packet_rate:,.0f} pkt/s, {msg_rate:,.0f} msg/s"
+                    )
+                    last_msg_log = msgs_written
 
-    print(
-        f"Processed {packets_seen} packets, used {packets_used} UDP packets, "
-        f"wrote {msgs_written} ITCH messages to {itch_out_path}"
-    )
+    # Final summary
+    elapsed = time.time() - start_time
+    packet_rate = packets_seen / elapsed if elapsed > 0 else 0
+    msg_rate = msgs_written / elapsed if elapsed > 0 else 0
+    avg_msgs_per_packet = msgs_written / packets_used if packets_used > 0 else 0
+    
+    print()
+    print("=" * 80)
+    print("[COMPLETE] PCAP to ITCH conversion finished")
+    print("=" * 80)
+    print(f"  Total packets processed:     {packets_seen:,}")
+    print(f"  UDP packets used:           {packets_used:,} ({packets_used/packets_seen*100:.1f}% of total)")
+    print(f"  ITCH messages written:      {msgs_written:,}")
+    print(f"  Avg messages per UDP packet: {avg_msgs_per_packet:.1f}")
+    print(f"  Processing time:           {elapsed:.1f}s")
+    print(f"  Packet processing rate:     {packet_rate:,.0f} packets/s")
+    print(f"  Message extraction rate:    {msg_rate:,.0f} messages/s")
+    print(f"  Output file:                {itch_out_path}")
+    print("=" * 80)
 
 
 def main():
