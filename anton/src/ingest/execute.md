@@ -1,7 +1,7 @@
 # Test Commands
 
 ```python
-python pcap_to_itch.py ABSOLUTE_PATH_RAW_PCAP ABSOLUTE_PATH_TO_ITCH_FILE
+python pcap_to_itch_converter.py ABSOLUTE_PATH_RAW_PCAP ABSOLUTE_PATH_TO_ITCH_FILE
 ```
 
 ```python
@@ -9,7 +9,7 @@ python nasdaq_loader.py ABSOLUTE_PATH_TO_ITCH_FILE  SPY -o spy_trades.csv
 ```
 
 ```
-python pcap_to_itch.py C:\data\dev\fin556\group_01_project\anton\data\nasdaq_pcaps\ny4-xnas-tvitch-a-20250401T083000.pcap C:\data\dev\fin556\group_01_project\anton\data\nasdaq_pcaps\ny4-xnas-tvitch-a-20250401T083000.itch
+python pcap_to_itch_converter.py C:\data\dev\fin556\group_01_project\anton\data\nasdaq_pcaps\ny4-xnas-tvitch-a-20250401T083000.pcap C:\data\dev\fin556\group_01_project\anton\data\nasdaq_pcaps\ny4-xnas-tvitch-a-20250401T083000.itch
 ```
 ```
 python nasdaq_loader.py C:\data\dev\fin556\group_01_project\anton\data\nasdaq_pcaps\ny4-xnas-tvitch-a-20250401T083000.itch  SPY -o spy_trades_2.csv
@@ -22,6 +22,14 @@ python new_nasdaq_ss_builder.py C:\data\dev\fin556\group_01_project\anton\data\n
 
 python nasdaq_ss_tick_builder.py C:\path\to\file.itch USO 2025-01-10 -o tick_USO_20250110.txt
 
+
+python nasdaq_ss_tick_builder.py raw_itch.bin SPY 2024-01-15 --progress-interval 100000
+
+python nasdaq_ss_tick_builder.py C:\data\dev\fin556\group_01_project\anton\data\nasdaq_pcaps\ny4-xnas-tvitch-a-20250401T083000_2.itch USO 2025-01-10 -o tick_USO_20250110.txt --progress-interval 100000
+
+
+
+python nasdaq_ss_trade_builder.py C:\data\dev\fin556\group_01_project\anton\data\nasdaq_pcaps\ny4-xnas-tvitch-a-20250401T083000_2.itch USO 2025-04-01 --output trade_USO_20250401.txt --trade-types P Q --progress-interval 100000
 
 # Expected output
 

@@ -26,12 +26,15 @@ OUTPUT_DIR = PROJECT_ROOT / "data" / "nasdaq_pcaps"
 # Scripts directory (where this file is located)
 SCRIPTS_DIR = Path(__file__).parent
 
+# Utils directory (where utility scripts are located)
+UTILS_DIR = Path(__file__).parent.parent / "utils"
+
 # =====================================================================
-# Script Paths (relative to SCRIPTS_DIR)
+# Script Paths (relative to UTILS_DIR and SCRIPTS_DIR)
 # =====================================================================
 
-ZST_TO_PCAP_SCRIPT = SCRIPTS_DIR / "zst_to_pcap.py"
-PCAP_TO_ITCH_SCRIPT = SCRIPTS_DIR / "pcap_to_itch_2.py"
+ZST_TO_PCAP_SCRIPT = UTILS_DIR / "zst_to_pcap.py"
+PCAP_TO_ITCH_SCRIPT = UTILS_DIR / "pcap_to_itch_converter.py"
 ITCH_TO_TICKS_SCRIPT = SCRIPTS_DIR / "nasdaq_ss_tick_builder.py"
 
 # =====================================================================

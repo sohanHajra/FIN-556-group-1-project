@@ -99,7 +99,7 @@ If you need to run steps separately:
 python zst_to_pcap.py file.pcap.zst -o file.pcap
 
 # Step 2: Convert PCAP to ITCH
-python pcap_to_itch_2.py file.pcap file.itch
+python pcap_to_itch_converter.py file.pcap file.itch
 
 # Step 3: Convert ITCH to ticks
 python nasdaq_ss_tick_builder.py file.itch SYMBOL YYYY-MM-DD -o tick_SYMBOL_YYYYMMDD.txt

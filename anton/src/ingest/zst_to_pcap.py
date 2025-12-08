@@ -3,7 +3,7 @@
 Decompress Zstandard (.zst) compressed PCAP files to regular .pcap files.
 
 This script automatically decompresses .zst files (like those from Databento)
-into standard .pcap files that can be processed by pcap_to_itch_2.py.
+into standard .pcap files that can be processed by pcap_to_itch_converter.py.
 """
 
 import argparse
