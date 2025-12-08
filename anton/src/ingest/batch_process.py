@@ -192,8 +192,16 @@ def process_single_file(
             print(f"✗ ERROR generating trades: {e}")
             success = False
     
-    # Cleanup: Delete .itch file after processing to save storage
-    # Only delete if we created it (not if skip_pcap was used)
+    # Cleanup: Delete intermediate files after processing to save storage
+    # Delete .pcap file if we created it (not if input was already .pcap or skip_decompress was used)
+    if not skip_decompress and zst_file.suffix == '.zst' and pcap_path.exists():
+        try:
+            pcap_path.unlink()
+            print(f"ℹ Cleaned up intermediate file: {pcap_path.name}")
+        except Exception as e:
+            print(f"⚠ WARNING: Could not delete .pcap file: {e}")
+    
+    # Delete .itch file if we created it (not if skip_pcap was used)
     if not skip_pcap and itch_path.exists():
         try:
             itch_path.unlink()

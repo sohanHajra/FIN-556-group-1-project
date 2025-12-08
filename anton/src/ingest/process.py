@@ -374,8 +374,16 @@ def main():
         trade_output = run_trade_builder(itch_path, args.symbol, trade_date, output_dir, args.progress_interval, input_filename)
         outputs.append(("Trade ticks", trade_output))
     
-    # Cleanup: Delete .itch file after processing to save storage
-    # Only delete if we created it (not if --skip-pcap was used)
+    # Cleanup: Delete intermediate files after processing to save storage
+    # Delete .pcap file if we created it (not if input was already .pcap or --skip-decompress was used)
+    if not args.skip_decompress and input_path.suffix == '.zst' and pcap_path.exists() and pcap_path != input_path:
+        try:
+            pcap_path.unlink()
+            print(f"ℹ Cleaned up intermediate file: {pcap_path.name}")
+        except Exception as e:
+            print(f"⚠ WARNING: Could not delete .pcap file: {e}")
+    
+    # Delete .itch file if we created it (not if --skip-pcap was used)
     if not args.skip_pcap and itch_path.exists():
         try:
             itch_path.unlink()

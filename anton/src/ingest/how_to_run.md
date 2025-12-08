@@ -127,10 +127,35 @@ data/nasdaq_pcaps/
     └── ...
 ```
 
+## Combine CSV Files by Day
+
+After processing multiple files, combine them into single files per day:
+
+```bash
+# Combine files for a single day
+python combine_csv.py 20250401
+
+# Combine files for a date range
+python combine_csv.py 20250401 20250402
+
+# Combine only tick files
+python combine_csv.py 20250401 --ticks-only
+
+# Combine only trade files
+python combine_csv.py 20250401 --trades-only
+```
+
+**Output**: 
+- `output/combined/combined_tick_YYYYMMDD.csv`
+- `output/combined/combined_trade_YYYYMMDD.csv`
+
+Files are automatically sorted by timestamp to maintain chronological order.
+
 ## Help
 
 ```bash
 python process.py --help
 python batch_process.py --help
+python combine_csv.py --help
 ```
 
