@@ -5,16 +5,16 @@ Simple entry point for NASDAQ ITCH processing pipeline.
 EXAMPLES (copy-paste ready):
     
     # Generate depth-by-price ticks (default, fastest)
-    # Output: output/tick_messages/YYYYMMDD/tick_SYMBOL_YYYYMMDDTHHMMSS.txt
+    # Output: output/tick_messages/YYYYMMDD/tick_SYMBOL_YYYYMMDDTHHMMSS.csv
     python process.py file.pcap.zst USO
     
     # Generate trade ticks only
-    # Output: output/trade_messages/YYYYMMDD/trade_SYMBOL_YYYYMMDDTHHMMSS.txt
+    # Output: output/trade_messages/YYYYMMDD/trade_SYMBOL_YYYYMMDDTHHMMSS.csv
     python process.py file.pcap.zst USO --trades
     
     # Generate both ticks and trades
-    # Output: output/tick_messages/YYYYMMDD/tick_SYMBOL_YYYYMMDDTHHMMSS.txt
-    #         output/trade_messages/YYYYMMDD/trade_SYMBOL_YYYYMMDDTHHMMSS.txt
+    # Output: output/tick_messages/YYYYMMDD/tick_SYMBOL_YYYYMMDDTHHMMSS.csv
+    #         output/trade_messages/YYYYMMDD/trade_SYMBOL_YYYYMMDDTHHMMSS.csv
     python process.py file.pcap.zst USO --both
     
     # With explicit date (if auto-detection fails)
@@ -88,9 +88,9 @@ def run_trade_builder(itch_file: Path, symbol: str, trade_date: str, output_dir:
     
     # Build filename with time if available
     if time_str:
-        filename = f"trade_{symbol}_{date_str}T{time_str}.txt"
+        filename = f"trade_{symbol}_{date_str}T{time_str}.csv"
     else:
-        filename = f"trade_{symbol}_{date_str}.txt"
+        filename = f"trade_{symbol}_{date_str}.csv"
     
     trade_output = date_folder / filename
     
@@ -132,9 +132,9 @@ def run_tick_builder(itch_file: Path, symbol: str, trade_date: str, output_dir: 
     
     # Build filename with time if available
     if time_str:
-        filename = f"tick_{symbol}_{date_str}T{time_str}.txt"
+        filename = f"tick_{symbol}_{date_str}T{time_str}.csv"
     else:
-        filename = f"tick_{symbol}_{date_str}.txt"
+        filename = f"tick_{symbol}_{date_str}.csv"
     
     tick_output = date_folder / filename
     
@@ -373,6 +373,15 @@ def main():
     if generate_trades:
         trade_output = run_trade_builder(itch_path, args.symbol, trade_date, output_dir, args.progress_interval, input_filename)
         outputs.append(("Trade ticks", trade_output))
+    
+    # Cleanup: Delete .itch file after processing to save storage
+    # Only delete if we created it (not if --skip-pcap was used)
+    if not args.skip_pcap and itch_path.exists():
+        try:
+            itch_path.unlink()
+            print(f"ℹ Cleaned up intermediate file: {itch_path.name}")
+        except Exception as e:
+            print(f"⚠ WARNING: Could not delete .itch file: {e}")
     
     # Final summary
     print("\n" + "=" * 80)

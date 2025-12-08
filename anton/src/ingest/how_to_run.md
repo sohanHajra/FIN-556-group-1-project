@@ -19,8 +19,10 @@ python process.py file.pcap.zst USO --both
 
 ## Output Locations
 
-- **Ticks**: `output/tick_messages/tick_SYMBOL_YYYYMMDD.txt`
-- **Trades**: `output/trade_messages/trade_SYMBOL_YYYYMMDD.txt`
+- **Ticks**: `output/tick_messages/YYYYMMDD/tick_SYMBOL_YYYYMMDDTHHMMSS.csv`
+- **Trades**: `output/trade_messages/YYYYMMDD/trade_SYMBOL_YYYYMMDDTHHMMSS.csv`
+- **PCAPs**: `output/pcap_decompressed/YYYYMMDD/filenameTtime.pcap`
+- **ITCH**: `output/itch_converted_pcaps/YYYYMMDD/filenameTtime.itch`
 
 ## Common Commands
 
@@ -96,9 +98,39 @@ python process.py file.pcap.zst SPY --trades
 python process.py file.pcap.zst USO --both --date 2025-04-01
 ```
 
+## Batch Processing (Multiple Files)
+
+Process all .zst files across a date range:
+
+```bash
+# Process all files from 2025-04-01 to 2025-04-02 for USO
+python batch_process.py USO 20250401 20250402
+
+# Process trades only for a single day
+python batch_process.py SPY 20250401 20250401 --trades
+
+# Process both ticks and trades for multiple days
+python batch_process.py USO 20250401 20250405 --both
+
+# Skip steps if intermediate files exist (faster re-runs)
+python batch_process.py USO 20250401 20250402 --skip-decompress --skip-pcap
+```
+
+**Note**: Batch processing expects files organized as:
+```
+data/nasdaq_pcaps/
+├── 20250401/
+│   ├── ny4-xnas-tvitch-a-20250401T070000.pcap.zst
+│   ├── ny4-xnas-tvitch-a-20250401T071000.pcap.zst
+│   └── ...
+└── 20250402/
+    └── ...
+```
+
 ## Help
 
 ```bash
 python process.py --help
+python batch_process.py --help
 ```
 

@@ -3,8 +3,13 @@ Configuration file for NASDAQ ITCH processing pipeline.
 
 Customize these paths to match your directory structure.
 All paths can be absolute or relative to the project root.
+
+To use a different data directory on another system:
+  1. Set environment variable: export NASDAQ_PCAPS_DIR=/md/nasdaq_pcaps
+  2. Or edit NASDAQ_PCAPS_DIR below to use absolute path: Path("/md/nasdaq_pcaps")
 """
 
+import os
 from pathlib import Path
 
 # Project root directory (adjust if needed)
@@ -16,12 +21,20 @@ PROJECT_ROOT = Path(__file__).parent.parent.parent
 # =====================================================================
 
 # Input directories
-NASDAQ_PCAPS_DIR = PROJECT_ROOT / "data" / "nasdaq_pcaps"
+# Priority: 1) Environment variable, 2) Absolute path (uncomment line below), 3) Relative to project root
+NASDAQ_PCAPS_DIR_ENV = os.getenv("NASDAQ_PCAPS_DIR")
+if NASDAQ_PCAPS_DIR_ENV:
+    NASDAQ_PCAPS_DIR = Path(NASDAQ_PCAPS_DIR_ENV)
+else:
+    # Default: relative to project root
+    NASDAQ_PCAPS_DIR = PROJECT_ROOT / "data" / "nasdaq_pcaps"
+    # For other systems with absolute path, uncomment and modify this line:
+    # NASDAQ_PCAPS_DIR = Path("/md/nasdaq_pcaps")
 # Where .zst and .pcap files are stored
 
 # Output directories
 OUTPUT_DIR = PROJECT_ROOT / "data" / "nasdaq_pcaps"
-# Where intermediate files (.pcap, .itch) and final outputs (.txt) are stored
+# Where intermediate files (.pcap, .itch) and final outputs (.csv) are stored
 
 # Scripts directory (where this file is located)
 SCRIPTS_DIR = Path(__file__).parent
@@ -72,7 +85,7 @@ def get_output_file(output_name: str, subdir: str | None = None) -> Path:
     Get full path to an output file.
     
     Args:
-        output_name: Filename (e.g., "file.itch" or "tick_SPY.txt")
+        output_name: Filename (e.g., "file.itch" or "tick_SPY.csv")
         subdir: Optional subdirectory (e.g., "ticks", "itch")
     
     Returns:
