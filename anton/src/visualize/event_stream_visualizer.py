@@ -84,6 +84,7 @@ class EventStreamVisualizer:
             "BATS": {"bid": "lightblue", "ask": "lightcoral", "trade": "khaki"},
             "ARCA": {"bid": "steelblue", "ask": "tomato", "trade": "goldenrod"},
             "EDGX": {"bid": "dodgerblue", "ask": "crimson", "trade": "orange"},
+            "IEX": {"bid": "purple", "ask": "lightcoral", "trade": "green"},
         }
         
         # Default colors for unknown market centers
