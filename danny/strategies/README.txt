@@ -1,0 +1,1 @@
+Place all strategies here. These are to be copied to /ss/sdk/RCM/StrategyStudio/examples/strategies/.. to be backtested.
