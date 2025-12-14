@@ -34,8 +34,13 @@ class StrategyObserver:
         self.name = name
         self.opportunities: List[TradingOpportunity] = []
     
-    def detect(self, events: pd.DataFrame) -> List[TradingOpportunity]:
-        """Detect opportunities in the event stream."""
+    def detect(self, events: pd.DataFrame, nearest_only: bool = False) -> List[TradingOpportunity]:
+        """Detect opportunities in the event stream.
+        
+        Args:
+            events: Event dataframe
+            nearest_only: If True, only return the nearest opportunity per starting event
+        """
         raise NotImplementedError("Subclasses must implement detect()")
     
     def get_highlight_data(self) -> Dict:
@@ -69,8 +74,13 @@ class CrossMarketArbitrageObserver(StrategyObserver):
         self.market2 = market2
         self.max_time_window_ns = max_time_window_ns
     
-    def detect(self, events: pd.DataFrame) -> List[TradingOpportunity]:
-        """Detect arbitrage opportunities between two markets."""
+    def detect(self, events: pd.DataFrame, nearest_only: bool = False) -> List[TradingOpportunity]:
+        """Detect arbitrage opportunities between two markets.
+        
+        Args:
+            events: Event dataframe
+            nearest_only: If True, only return the nearest opportunity per starting event
+        """
         opportunities = []
         
         # Ensure we have time_ns column
@@ -111,7 +121,15 @@ class CrossMarketArbitrageObserver(StrategyObserver):
                 (market2_bids["PRICE"] > m1_ask["PRICE"])
             ]
             
-            for _, m2_bid in m2_bids_in_window.iterrows():
+            if len(m2_bids_in_window) == 0:
+                continue
+            
+            if nearest_only:
+                # Find the nearest match (smallest time difference)
+                m2_bids_in_window = m2_bids_in_window.copy()
+                m2_bids_in_window["time_diff"] = m2_bids_in_window["time_ns"] - time_ns
+                nearest_idx = m2_bids_in_window["time_diff"].idxmin()
+                m2_bid = m2_bids_in_window.loc[nearest_idx]
                 spread = m2_bid["PRICE"] - m1_ask["PRICE"]
                 if spread > 0:
                     opportunities.append(TradingOpportunity(
@@ -128,6 +146,25 @@ class CrossMarketArbitrageObserver(StrategyObserver):
                         sell_event_idx=int(m2_bid["event_index"]),
                         description=f"Buy {self.market1} @ ${m1_ask['PRICE']:.4f}, Sell {self.market2} @ ${m2_bid['PRICE']:.4f}, Spread: ${spread:.4f}"
                     ))
+            else:
+                # Show all matches
+                for _, m2_bid in m2_bids_in_window.iterrows():
+                    spread = m2_bid["PRICE"] - m1_ask["PRICE"]
+                    if spread > 0:
+                        opportunities.append(TradingOpportunity(
+                            event_idx=m1_ask["event_index"],
+                            timestamp=m1_ask["COLLECTION_TIME"],
+                            opportunity_type="buy_low_sell_high",
+                            buy_market=self.market1,
+                            buy_price=m1_ask["PRICE"],
+                            sell_market=self.market2,
+                            sell_price=m2_bid["PRICE"],
+                            spread=spread,
+                            time_window_ns=int(m2_bid["time_ns"] - time_ns),
+                            buy_event_idx=int(m1_ask["event_index"]),
+                            sell_event_idx=int(m2_bid["event_index"]),
+                            description=f"Buy {self.market1} @ ${m1_ask['PRICE']:.4f}, Sell {self.market2} @ ${m2_bid['PRICE']:.4f}, Spread: ${spread:.4f}"
+                        ))
         
         # Strategy 2: market1 bid > market2 ask -> buy market2, sell market1
         for _, m1_bid in market1_bids.iterrows():
@@ -138,7 +175,15 @@ class CrossMarketArbitrageObserver(StrategyObserver):
                 (market2_asks["PRICE"] < m1_bid["PRICE"])
             ]
             
-            for _, m2_ask in m2_asks_in_window.iterrows():
+            if len(m2_asks_in_window) == 0:
+                continue
+            
+            if nearest_only:
+                # Find the nearest match (smallest time difference)
+                m2_asks_in_window = m2_asks_in_window.copy()
+                m2_asks_in_window["time_diff"] = m2_asks_in_window["time_ns"] - time_ns
+                nearest_idx = m2_asks_in_window["time_diff"].idxmin()
+                m2_ask = m2_asks_in_window.loc[nearest_idx]
                 spread = m1_bid["PRICE"] - m2_ask["PRICE"]
                 if spread > 0:
                     opportunities.append(TradingOpportunity(
@@ -155,6 +200,25 @@ class CrossMarketArbitrageObserver(StrategyObserver):
                         sell_event_idx=int(m1_bid["event_index"]),
                         description=f"Buy {self.market2} @ ${m2_ask['PRICE']:.4f}, Sell {self.market1} @ ${m1_bid['PRICE']:.4f}, Spread: ${spread:.4f}"
                     ))
+            else:
+                # Show all matches
+                for _, m2_ask in m2_asks_in_window.iterrows():
+                    spread = m1_bid["PRICE"] - m2_ask["PRICE"]
+                    if spread > 0:
+                        opportunities.append(TradingOpportunity(
+                            event_idx=m1_bid["event_index"],
+                            timestamp=m1_bid["COLLECTION_TIME"],
+                            opportunity_type="buy_low_sell_high",
+                            buy_market=self.market2,
+                            buy_price=m2_ask["PRICE"],
+                            sell_market=self.market1,
+                            sell_price=m1_bid["PRICE"],
+                            spread=spread,
+                            time_window_ns=int(m2_ask["time_ns"] - time_ns),
+                            buy_event_idx=int(m2_ask["event_index"]),
+                            sell_event_idx=int(m1_bid["event_index"]),
+                            description=f"Buy {self.market2} @ ${m2_ask['PRICE']:.4f}, Sell {self.market1} @ ${m1_bid['PRICE']:.4f}, Spread: ${spread:.4f}"
+                        ))
         
         self.opportunities = opportunities
         return opportunities
@@ -170,11 +234,16 @@ class StrategyManager:
         """Add a strategy observer."""
         self.observers.append(observer)
     
-    def detect_all(self, events: pd.DataFrame) -> Dict[str, List[TradingOpportunity]]:
-        """Run all observers and return results."""
+    def detect_all(self, events: pd.DataFrame, nearest_only: bool = False) -> Dict[str, List[TradingOpportunity]]:
+        """Run all observers and return results.
+        
+        Args:
+            events: Event dataframe
+            nearest_only: If True, only return the nearest opportunity per starting event
+        """
         results = {}
         for observer in self.observers:
-            opportunities = observer.detect(events)
+            opportunities = observer.detect(events, nearest_only=nearest_only)
             results[observer.name] = opportunities
         return results
     

@@ -525,6 +525,19 @@ def create_dash_app(visualizer: EventStreamVisualizer):
                         style={'width': '120px', 'marginRight': '10px'},
                     ),
                 ], style={'marginBottom': '10px'}),
+                html.Div([
+                    html.Label("Match Mode:", style={'fontWeight': 'bold', 'marginRight': '10px', 'fontSize': '12px'}),
+                    dcc.RadioItems(
+                        id='match-mode-radio',
+                        options=[
+                            {'label': ' Show All', 'value': 'all'},
+                            {'label': ' Show Nearest Only', 'value': 'nearest'},
+                        ],
+                        value='all',
+                        inline=True,
+                        style={'marginTop': '5px'},
+                    ),
+                ], style={'marginBottom': '10px'}),
                 dcc.Checklist(
                     id='show-strategies-checklist',
                     options=[{'label': ' Show Arbitrage Opportunities', 'value': 'arbitrage'}],
@@ -573,13 +586,14 @@ def create_dash_app(visualizer: EventStreamVisualizer):
         State('end-index-input', 'value'),
         State('time-input', 'value'),
         State('max-time-window-input', 'value'),
+        State('match-mode-radio', 'value'),
         *offset_states,
     )
     def update_graph(max_events, start_idx, prev_clicks, next_clicks, 
                      prev_1000_clicks, next_1000_clicks,
                      event_types, market_centers, go_time_clicks, go_range_clicks,
                      show_strategies, calculate_opportunities_clicks,
-                     current_start, end_index, time_input, max_time_window_ns, *offset_values):
+                     current_start, end_index, time_input, max_time_window_ns, match_mode, *offset_values):
         # Build offset dictionary from offset values
         offsets = {}
         for i, mc in enumerate(market_centers_list):
@@ -675,7 +689,10 @@ def create_dash_app(visualizer: EventStreamVisualizer):
                         observer.max_time_window_ns = int(max_window_ns)
                     observer.opportunities = []
                 
-                strategy_results = visualizer.strategy_manager.detect_all(window_with_offsets)
+                # Determine if we should only show nearest matches
+                nearest_only = (match_mode == 'nearest') if match_mode else False
+                
+                strategy_results = visualizer.strategy_manager.detect_all(window_with_offsets, nearest_only=nearest_only)
                 total_opps = sum(len(opps) for opps in strategy_results.values())
                 
                 offset_summary = ", ".join([f"{mc}: {off:+d}ns" for mc, off in offsets.items() if off != 0])
