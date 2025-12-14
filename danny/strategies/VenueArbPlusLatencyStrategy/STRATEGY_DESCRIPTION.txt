@@ -1,0 +1,46 @@
+VenueArbPlusLatencyStrategy
+
+Overview
+--------
+VenueArb is a minimal, event-driven venue arbitrage strategy that exploits
+top-of-book price discrepancies between NASDAQ and IEX. The strategy reacts
+to direct quote updates and maintains a target position based on cross-venue
+bid/ask relationships.
+
+Signal Logic
+------------
+For each instrument, the strategy continuously tracks the latest bid and ask
+from both NASDAQ and IEX.
+
+A trading signal is generated as follows:
+
+- Go LONG if:
+    IEX bid > NASDAQ ask + arb_threshold
+
+- Go SHORT if:
+    NASDAQ bid > IEX ask + arb_threshold
+
+- Otherwise:
+    Target position is FLAT
+
+The arb_threshold parameter is used to filter out noise and microprice
+fluctuations.
+
+Execution Logic
+---------------
+Orders are routed to NASDAQ only. The strategy maintains at most one working
+order per instrument at any time.
+
+Orders are placed as limit orders at the current top-of-book price, adjusted
+by the aggressiveness parameter:
+
+- Buy orders: ask - aggressiveness
+- Sell orders: bid + aggressiveness
+
+Position Management
+-------------------
+The strategy compares the desired target position to the current portfolio
+position and submits orders only when an adjustment is required. Positions
+are automatically reduced or flattened when the arbitrage condition no
+longer holds.
+
