@@ -548,7 +548,7 @@ class BasicPcapParser():
         
         #TODO: make this a command line arg
         #filename_string = "../data/output/%s" % (filename_string)
-        filename_string = "data/text_tick_data/%s" % (filename_string)
+        filename_string = "../data/text_tick_data/%s" % (filename_string)
         
         #if we haven't already created a tick file for this symbol on this day, do so and store in hash
         if filename_string not in self.trades_per_symbol_output_file_hash:
