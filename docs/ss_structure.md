@@ -83,3 +83,85 @@ fi
 
 
 echo "Successfully cloned DiaIndexArb strategy to acharov2_strategy"
+
+
+-----
+
+Extra notes:
+
+cd ~/ss/sdk/RCM/StrategyStudio/examples/strategies/
+cp -r dia_index_arb_strategy acharov2_strategy
+cd acharov2_strategy/
+mv DiaIndexArb.h acharov2_strategy.h
+mv DiaIndexArb.cpp acharov2_strategy.cpp
+mv DiaIndexArb.so acharov2_strategy.so
+
+-- in nano Makefile rename
+LIBRARY=acharov2_strategy.so, SOURCES=acharov2_strategy.cpp, HEADERS=acharov2_strategy.h
+
+~/ss/bt/StrategyServerBacktesting
+
+----
+
+make copy_strategy
+
+change in acharov2_strategy.cpp 
+-> include header to acharov2_strategy.h
+
+Strategy exports in acharov2_strategy.h
+on return 
+
+make copy_strategy
+
+(in bt directory)
+./StrategyServerBacktesting &
+
+
+---- create instance ----
+
+cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd create_instance MyAcharov2Instance acharov2_strategy UIUC SIM-1001-101 dlariviere 9900000 -symbols "SPY|NVDA|GOOG"
+
+---- start back test ----
+
+cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd start_backtest "$startDate" "$endDate" "$instanceName" 0
+
+
+cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd start_backtest "2023-09-05" "2023-09-05" "MyAcharov2Instance" 0
+
+---- see running strategies ----
+
+cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd strategy_instance_list
+
+---- termination for strategies
+
+cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd 
+terminate|pause|stop -all
+
+--- see results ---
+
+ls -lA ~/ss/bt/backtesting-results/
+
+--- export results ---
+cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd export_cra_file "~/ss/bt/backtesting-results/BACK_MyAcharov2Instance_2025-10-22_031417_start_09-05-2023_end_09-05-2023.cra"
+
+
+--- for corrupted strategies, run
+
+make clean
+
+make
+
+make copy_strategy
+
+***don't worry about warning***
+
+
+--- helper script
+
+/vagrant/provision_scripts/run_backtest.sh
+
+
+
+
+cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd export_cra_file "/home/ach
+arov2/ss/bt/backtesting-results/BACK_MyAcharov2Instance_2025-10-22_031417_start_09-05-2023_end_09-05-2023.cra"
