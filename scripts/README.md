@@ -26,6 +26,7 @@ group_01_project/
 │   ├── deploy_strategy.sh
 │   ├── bt_server.sh
 │   ├── bt_instance.sh
+│   ├── run_strategy.sh
 │   ├── ss_logs.sh
 │   ├── ss_log_manager.sh
 │   └── README.md   <-- (this file)
@@ -190,6 +191,81 @@ Or stop or pause everything
 
 ---
 
+## Convenience wrapper: `run_strategy.sh`
+
+The `run_strategy.sh` script is a **convenience wrapper** that loads configuration from `bt_config.sh` and provides simplified commands for common workflows.
+
+### Configuration
+
+`run_strategy.sh` automatically loads:
+- `scripts/bt_config.sh` (required)
+- `scripts/bt_config.local.sh` (optional, for user-specific overrides)
+
+All values can be overridden via command-line flags.
+
+### Commands
+
+**Start backtest server:**
+```bash
+./scripts/run_strategy.sh start
+```
+
+**Create strategy instance** (uses config defaults, or override with flags):
+```bash
+./scripts/run_strategy.sh create
+./scripts/run_strategy.sh create --instance MyInstance --symbols "SPY|NVDA"
+```
+
+**Run backtest** (uses config defaults, or override with flags):
+```bash
+./scripts/run_strategy.sh backtest
+./scripts/run_strategy.sh backtest --start 2023-09-05 --end 2023-09-06
+```
+
+**List instances:**
+```bash
+./scripts/run_strategy.sh list
+```
+
+**Terminate all instances:**
+```bash
+./scripts/run_strategy.sh killall
+```
+
+**Full pipeline** (start server → recheck → create → backtest):
+```bash
+./scripts/run_strategy.sh run
+./scripts/run_strategy.sh run --start 2023-09-05 --end 2023-09-06
+```
+
+### Available flags (override config)
+
+- `--instance INSTANCE_NAME`
+- `--strategy_type STRATEGY_TYPE`
+- `--symbols "A|B|C"`
+- `--start YYYY-MM-DD`
+- `--end YYYY-MM-DD`
+- `--mode 0|1` (0 = quotes + trades, 1 = trades only)
+
+### Example: Full workflow with overrides
+
+```bash
+./scripts/run_strategy.sh run \
+  --instance MyTestInstance \
+  --strategy_type venue_arb \
+  --symbols "SPY|NVDA|GOOG" \
+  --start 2023-09-05 \
+  --end 2023-09-05
+```
+
+This single command will:
+1. Start the backtest server (if not running)
+2. Recheck strategy DLLs
+3. Create the instance with specified parameters
+4. Launch the backtest
+
+---
+
 ## Logs & debugging
 
 ### View logs quickly
@@ -333,6 +409,7 @@ group_01_project/
 │   ├── deploy_strategy.sh
 │   ├── bt_server.sh
 │   ├── bt_instance.sh
+│   ├── run_strategy.sh
 │   ├── ss_logs.sh
 │   ├── ss_log_manager.sh
 │   └── README.md   <-- (this file)
