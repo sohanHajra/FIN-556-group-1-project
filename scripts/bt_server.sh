@@ -25,12 +25,12 @@ is_running() {
 case "${1:-}" in
   start)
     if is_running; then
-      echo "✅ Backtest server already running (pid $(cat "$PIDFILE"))"
+      echo "Backtest server already running (pid $(cat "$PIDFILE"))"
       exit 0
     fi
 
     [[ -x "$BIN" ]] || {
-      echo "❌ StrategyServerBacktesting not executable: $BIN"
+      echo "StrategyServerBacktesting not executable: $BIN"
       exit 1
     }
 
@@ -46,9 +46,9 @@ case "${1:-}" in
 
     if kill -0 "$PID" 2>/dev/null; then
       echo "$PID" > "$PIDFILE"
-      echo "✅ Started (pid $PID)"
+      echo "Started (pid $PID)"
     else
-      echo "❌ Failed to start. Last log lines:"
+      echo "Failed to start. Last log lines:"
       tail -n 50 "$LOG" || true
       exit 1
     fi
@@ -60,17 +60,17 @@ case "${1:-}" in
       echo "➡️ Stopping StrategyServerBacktesting (pid $PID)"
       kill "$PID" || true
       rm -f "$PIDFILE"
-      echo "✅ Stopped"
+      echo "Stopped"
     else
-      echo "ℹ️ Not running"
+      echo "Not running"
     fi
     ;;
 
   status)
     if is_running; then
-      echo "✅ Running (pid $(cat "$PIDFILE"))"
+      echo "Running (pid $(cat "$PIDFILE"))"
     else
-      echo "❌ Not running"
+      echo "Not running"
       exit 1
     fi
     ;;
@@ -79,7 +79,7 @@ case "${1:-}" in
     if [[ -f "$LOG" ]]; then
       tail -n 100 "$LOG"
     else
-      echo "❌ No log file found at $LOG"
+      echo "No log file found at $LOG"
       exit 1
     fi
     ;;

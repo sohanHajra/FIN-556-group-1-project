@@ -45,7 +45,7 @@ if [[ -z "$NEWNAME" ]]; then
 fi
 
 if [[ -e "$NEWNAME" ]]; then
-  echo "❌ Target already exists: $STRATS_DIR/$NEWNAME"
+  echo "Target already exists: $STRATS_DIR/$NEWNAME"
   exit 1
 fi
 
@@ -62,7 +62,7 @@ OLD_CPP="$(ls *.cpp 2>/dev/null | head -n 1 || true)"
 OLD_SO="$(ls *.so 2>/dev/null | head -n 1 || true)"
 
 if [[ -z "$OLD_H" || -z "$OLD_CPP" ]]; then
-  echo "❌ Could not find .h/.cpp in $STRATS_DIR/$NEWNAME"
+  echo "Could not find .h/.cpp in $STRATS_DIR/$NEWNAME"
   exit 1
 fi
 
@@ -113,10 +113,10 @@ if [[ -f Makefile ]]; then
     echo "HEADERS=${NEW_H}" >> Makefile
   fi
 
-  echo "✅ Makefile updated (backup: Makefile.preclone.bak)"
+  echo "Makefile updated (backup: Makefile.preclone.bak)"
 else
-  echo "⚠️  No Makefile found; skipping Makefile updates."
+  echo "No Makefile found; skipping Makefile updates."
 fi
 
-echo "✅ Strategy cloned at: $STRATS_DIR/$NEWNAME"
+echo "Strategy cloned at: $STRATS_DIR/$NEWNAME"
 echo "   Next: build+copy via ./scripts/build_copy_strategy.sh --name $NEWNAME"

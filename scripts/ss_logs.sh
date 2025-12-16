@@ -53,7 +53,7 @@ case "$cmd" in
     fi
 
     [[ -f "$BT_LOG" ]] || {
-      echo "❌ No backtest server log found: $BT_LOG"
+      echo "No backtest server log found: $BT_LOG"
       exit 1
     }
 
@@ -78,7 +78,7 @@ case "$cmd" in
     done
 
     [[ -n "$INSTANCE" ]] || {
-      echo "❌ You must specify --instance NAME"
+      echo "You must specify --instance NAME"
       exit 1
     }
 

@@ -96,29 +96,29 @@ case "$cmd" in
     TARGET="${1:-}"
     case "$TARGET" in
       bt)
-        echo "⚠️ Deleting backtest server logs"
+        echo "Deleting backtest server logs"
         rm -f "$BT_LOG_DIR"/*.log
         ;;
       sdk)
-        echo "⚠️ Deleting SDK logs"
+        echo "Deleting SDK logs"
         rm -f "$SDK_LOG_DIR"/*
         ;;
       results)
-        echo "⚠️ Deleting backtest result files (.cra)"
+        echo "Deleting backtest result files (.cra)"
         rm -f "$BT_RESULTS_DIR"/*.cra
         ;;
       all)
-        echo "⚠️ Deleting ALL StrategyStudio logs and results"
+        echo "Deleting ALL StrategyStudio logs and results"
         rm -f "$BT_LOG_DIR"/*.log
         rm -f "$SDK_LOG_DIR"/*
         rm -f "$BT_RESULTS_DIR"/*.cra
         ;;
       *)
-        echo "❌ Specify what to clean: bt | sdk | results | all"
+        echo "Specify what to clean: bt | sdk | results | all"
         exit 1
         ;;
     esac
-    echo "✅ Done."
+    echo "Done."
     ;;
 
   purge)
@@ -131,16 +131,16 @@ case "$cmd" in
     done
 
     [[ -n "$DAYS" ]] || {
-      echo "❌ Must specify --days N"
+      echo "Must specify --days N"
       exit 1
     }
 
-    echo "⚠️ Deleting files older than $DAYS days"
+    echo "Deleting files older than $DAYS days"
 
     find "$BT_LOG_DIR" "$SDK_LOG_DIR" "$BT_RESULTS_DIR" \
       -type f -mtime +"$DAYS" -print -delete 2>/dev/null
 
-    echo "✅ Purge complete."
+    echo "Purge complete."
     ;;
 
   *)

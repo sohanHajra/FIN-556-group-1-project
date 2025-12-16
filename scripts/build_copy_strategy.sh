@@ -35,4 +35,4 @@ make clean
 make
 make copy_strategy
 
-echo "✅ Built + copied strategy: $NAME"
+echo "Built + copied strategy: $NAME"

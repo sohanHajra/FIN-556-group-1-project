@@ -18,7 +18,7 @@ STRAT_DIR=""
 INSTANCE=""
 ACCOUNT="UIUC"
 SIM=""
-USERNAME=""
+USERNAME="dlariviere"
 CASH="9900000"
 SYMBOLS=""
 START=""
@@ -67,4 +67,4 @@ echo "=== 4) Run backtest ==="
   --end "$END" \
   --mode 0
 
-echo "✅ Launched backtest. Results will appear in: $HOME/ss/bt/backtesting-results/"
+echo "Launched backtest. Results will appear in: $HOME/ss/bt/backtesting-results/"

@@ -14,6 +14,7 @@ Usage:
   $0 stop      --instance NAME
   $0 pause     --instance NAME
   $0 export    --cra /path/to/file.cra
+  $0 recheck
 
 Examples:
   $0 create --instance MyAcharov2Instance --strategy acharov2_strategy --account UIUC --sim SIM-1001-101 --user dlariviere --cash 9900000 --symbols "SPY|NVDA|GOOG"
@@ -24,39 +25,46 @@ Examples:
 EOF
 }
 
-[[ -x "$CLI" ]] || { echo "❌ Missing CLI: $CLI"; exit 1; }
+[[ -x "$CLI" ]] || { echo "Missing CLI: $CLI"; exit 1; }
 
 SUB="${1:-}"
 shift || true
 
 case "$SUB" in
-  create)
-    INSTANCE=""; STRAT=""; ACCOUNT=""; SIM=""; USERNAME=""; CASH=""; SYMBOLS=""
+    create)
+    INSTANCE=""; STRAT_TYPE=""; GROUP="UIUC"; ACCOUNT=""; USERNAME=""; CASH=""; SYMBOLS=""
+
     while [[ $# -gt 0 ]]; do
-      case "$1" in
+        case "$1" in
         --instance) INSTANCE="$2"; shift 2;;
-        --strategy) STRAT="$2"; shift 2;;   # expects "acharov2_strategy" (we append .so)
+        --strategy) STRAT_TYPE="$2"; shift 2;;   # THIS IS THE FACTORY NAME
+        --group) GROUP="$2"; shift 2;;
         --account) ACCOUNT="$2"; shift 2;;
-        --sim) SIM="$2"; shift 2;;
         --user) USERNAME="$2"; shift 2;;
         --cash) CASH="$2"; shift 2;;
         --symbols) SYMBOLS="$2"; shift 2;;
         -h|--help) usage; exit 0;;
         *) echo "Unknown arg: $1"; usage; exit 1;;
-      esac
+        esac
     done
 
-    [[ -n "$INSTANCE" && -n "$STRAT" && -n "$ACCOUNT" && -n "$SIM" && -n "$USERNAME" && -n "$CASH" && -n "$SYMBOLS" ]] || {
-      usage; exit 1;
+    [[ -n "$INSTANCE" && -n "$STRAT_TYPE" && -n "$ACCOUNT" && -n "$USERNAME" && -n "$CASH" ]] || {
+        usage; exit 1;
     }
 
-    STRAT_SO="${STRAT}.so"
-    echo "➡️  Creating instance: $INSTANCE"
+    echo "➡️  Creating instance: $INSTANCE (type=$STRAT_TYPE)"
     (cd "$UTIL_DIR" && "$CLI" cmd create_instance \
-      "$INSTANCE" "$STRAT_SO" "$ACCOUNT" "$SIM" "$USERNAME" "$CASH" \
-      -symbols "$SYMBOLS")
-    echo "✅ Created."
+        "$INSTANCE" \
+        "$STRAT_TYPE" \
+        "$GROUP" \
+        "$ACCOUNT" \
+        "$USERNAME" \
+        "$CASH" \
+        -symbols "$SYMBOLS")
+
+    echo "Created."
     ;;
+
 
   backtest)
     INSTANCE=""; START=""; END=""; MODE="0"
@@ -75,7 +83,7 @@ case "$SUB" in
 
     echo "➡️  Starting backtest: $INSTANCE  $START → $END"
     (cd "$UTIL_DIR" && "$CLI" cmd start_backtest "$START" "$END" "$INSTANCE" "$MODE")
-    echo "✅ Started."
+    echo "Started."
     ;;
 
   list)
@@ -84,22 +92,50 @@ case "$SUB" in
 
   terminate|stop|pause)
     INSTANCE=""
+    ALL="false"
+
     while [[ $# -gt 0 ]]; do
-      case "$1" in
-        --instance) INSTANCE="$2"; shift 2;;
-        -h|--help) usage; exit 0;;
-        *) echo "Unknown arg: $1"; usage; exit 1;;
-      esac
+        case "$1" in
+        --instance)
+            INSTANCE="$2"
+            shift 2
+            ;;
+        --all)
+            ALL="true"
+            shift 1
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown arg: $1"
+            usage
+            exit 1
+            ;;
+        esac
     done
 
-    [[ -n "$INSTANCE" ]] || {
-      echo "❌ You must specify --instance NAME"
-      exit 1
-    }
+    # Validation
+    if [[ "$ALL" == "true" && -n "$INSTANCE" ]]; then
+        echo "❌ Cannot use --all and --instance together"
+        exit 1
+    fi
 
-    echo "➡️  $SUB instance: $INSTANCE"
-    (cd "$UTIL_DIR" && "$CLI" cmd "$SUB" "$INSTANCE")
-    echo "✅ Done."
+    if [[ "$ALL" == "false" && -z "$INSTANCE" ]]; then
+        echo "❌ You must specify either --instance NAME or --all"
+        exit 1
+    fi
+
+    if [[ "$ALL" == "true" ]]; then
+        echo "➡️  $SUB ALL strategy instances"
+        (cd "$UTIL_DIR" && "$CLI" cmd "$SUB" -all)
+    else
+        echo "➡️  $SUB instance: $INSTANCE"
+        (cd "$UTIL_DIR" && "$CLI" cmd "$SUB" "$INSTANCE")
+    fi
+
+    echo "Done."
     ;;
 
   export)
@@ -116,8 +152,15 @@ case "$SUB" in
 
     echo "➡️  Exporting CRA: $CRA"
     (cd "$UTIL_DIR" && "$CLI" cmd export_cra_file "$CRA")
-    echo "✅ Export done."
+    echo "Export done."
     ;;
+
+  recheck)
+    echo "➡️ Rechecking strategy DLLs..."
+    (cd "$UTIL_DIR" && "$CLI" cmd recheck_strategies)
+    echo "Done."
+    ;;
+
 
   *)
     usage
