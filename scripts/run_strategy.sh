@@ -36,13 +36,9 @@ START="${BT_BACKTEST_START:-}"
 END="${BT_BACKTEST_END:-}"
 MODE="${BT_BACKTEST_MODE:-0}"
 
-# Optional build input (directory name)
-STRAT_DIR=""
-
 # ================================
 # Script dependencies
 # ================================
-BUILD_SCRIPT="$SCRIPT_DIR/build_copy_strategy.sh"
 BT_SERVER="$SCRIPT_DIR/bt_server.sh"
 BT_INSTANCE="$SCRIPT_DIR/bt_instance.sh"
 
@@ -53,15 +49,14 @@ Usage:
   $0 <command> [options]
 
 Commands:
-  build        Build + copy strategy (.so)
   start        Start backtest server
   create       Create strategy instance
   backtest     Run backtest
-  run          build → start → recheck → create → backtest
   list         List strategy instances
+  killall      Terminate ALL strategy instances
+  run          start → recheck → create → backtest
 
 Options (override config):
-  --strategy_dir STRATEGY_SOURCE_DIR
   --strategy_type STRATEGY_TYPE
   --instance INSTANCE_NAME
   --group GROUP
@@ -75,8 +70,8 @@ Options (override config):
 
 Examples:
   $0 run
+  $0 killall
   $0 backtest --start 2023-10-01 --end 2023-10-31
-  $0 create --instance TestInstance
 EOF
 }
 
@@ -101,7 +96,6 @@ shift
 # ================================
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --strategy_dir) STRAT_DIR="$2"; shift 2;;
     --strategy_type) STRATEGY_TYPE="$2"; shift 2;;
     --instance) INSTANCE="$2"; shift 2;;
     --group) GROUP="$2"; shift 2;;
@@ -121,12 +115,6 @@ done
 # Commands
 # ================================
 case "$CMD" in
-  build)
-    require STRAT_DIR
-    echo "=== Build strategy from dir: $STRAT_DIR ==="
-    "$BUILD_SCRIPT" --name "$STRAT_DIR"
-    ;;
-
   start)
     echo "=== Start backtest server ==="
     "$BT_SERVER" start
@@ -159,14 +147,16 @@ case "$CMD" in
     "$BT_INSTANCE" list
     ;;
 
+  killall)
+    echo "=== Terminating ALL strategy instances ==="
+    "$BT_INSTANCE" terminate --all
+    echo "All strategy instances terminated."
+    ;;
+
   run)
     require INSTANCE STRATEGY_TYPE GROUP ACCOUNT USERNAME SYMBOLS START END
 
-    echo "=== FULL PIPELINE ==="
-
-    if [[ -n "$STRAT_DIR" ]]; then
-      "$BUILD_SCRIPT" --name "$STRAT_DIR"
-    fi
+    echo "=== FULL PIPELINE (NO BUILD) ==="
 
     "$BT_SERVER" start
     "$BT_INSTANCE" recheck
