@@ -3,6 +3,16 @@ set -euo pipefail
 
 UTIL_DIR="${HOME}/ss/bt/utilities"
 CLI="${UTIL_DIR}/StrategyCommandLine"
+# Load per-user config
+CONFIG_FILE="$(dirname "$0")/bt_config.sh"
+if [[ -f "$CONFIG_FILE" ]]; then
+  source "$CONFIG_FILE"
+else
+  echo "Missing config file: scripts/bt_config.sh"
+  echo "Copy scripts/bt_config.example.sh → bt_config.sh"
+  exit 1
+fi
+
 
 usage() {
   cat <<EOF
@@ -32,12 +42,18 @@ shift || true
 
 case "$SUB" in
     create)
-    INSTANCE=""; STRAT_TYPE=""; GROUP="UIUC"; ACCOUNT=""; USERNAME=""; CASH=""; SYMBOLS=""
+    INSTANCE="${BT_INSTANCE_NAME:-}"
+    STRAT_TYPE="${BT_STRATEGY_TYPE:-}"
+    GROUP="${BT_GROUP:-UIUC}"
+    ACCOUNT="${BT_ACCOUNT:-}"
+    USERNAME="${BT_USER:-}"
+    CASH="${BT_CASH:-}"
+    SYMBOLS="${BT_SYMBOLS:-}"
 
     while [[ $# -gt 0 ]]; do
-        case "$1" in
+      case "$1" in
         --instance) INSTANCE="$2"; shift 2;;
-        --strategy) STRAT_TYPE="$2"; shift 2;;   # THIS IS THE FACTORY NAME
+        --strategy) STRAT_TYPE="$2"; shift 2;;
         --group) GROUP="$2"; shift 2;;
         --account) ACCOUNT="$2"; shift 2;;
         --user) USERNAME="$2"; shift 2;;
@@ -45,14 +61,24 @@ case "$SUB" in
         --symbols) SYMBOLS="$2"; shift 2;;
         -h|--help) usage; exit 0;;
         *) echo "Unknown arg: $1"; usage; exit 1;;
-        esac
+      esac
     done
 
     [[ -n "$INSTANCE" && -n "$STRAT_TYPE" && -n "$ACCOUNT" && -n "$USERNAME" && -n "$CASH" ]] || {
-        usage; exit 1;
+      echo "Missing required config or args"
+      usage
+      exit 1
     }
 
-    echo "➡️  Creating instance: $INSTANCE (type=$STRAT_TYPE)"
+    echo "[ O_O ] Creating instance!"
+    echo "   instance = $INSTANCE"
+    echo "   strategy = $STRAT_TYPE"
+    echo "   account  = $ACCOUNT"
+    echo "   user     = $USERNAME"
+    echo "   cash     = $CASH"
+    echo "   symbols  = $SYMBOLS"
+
+
     (cd "$UTIL_DIR" && "$CLI" cmd create_instance \
         "$INSTANCE" \
         "$STRAT_TYPE" \
@@ -67,7 +93,11 @@ case "$SUB" in
 
 
   backtest)
-    INSTANCE=""; START=""; END=""; MODE="0"
+    INSTANCE="${BT_INSTANCE_NAME:-}"
+    START="${BT_BACKTEST_START:-}"
+    END="${BT_BACKTEST_END:-}"
+    MODE="${BT_BACKTEST_MODE:-0}"
+
     while [[ $# -gt 0 ]]; do
       case "$1" in
         --instance) INSTANCE="$2"; shift 2;;
@@ -79,9 +109,19 @@ case "$SUB" in
       esac
     done
 
-    [[ -n "$INSTANCE" && -n "$START" && -n "$END" ]] || { usage; exit 1; }
+    [[ -n "$INSTANCE" && -n "$START" && -n "$END" ]] || {
+      echo "Missing instance or backtest date range"
+      usage
+      exit 1
+    }
 
-    echo "➡️  Starting backtest: $INSTANCE  $START → $END"
+    echo "[ O_O ] Starting backtest! Sit tight..."
+    echo "   instance = $INSTANCE"
+    echo "   start    = $START"
+    echo "   end      = $END"
+    echo "   mode     = $MODE"
+
+
     (cd "$UTIL_DIR" && "$CLI" cmd start_backtest "$START" "$END" "$INSTANCE" "$MODE")
     echo "Started."
     ;;
