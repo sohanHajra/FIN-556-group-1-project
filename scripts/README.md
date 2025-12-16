@@ -164,7 +164,29 @@ Stop / pause / terminate a specific instance:
 ./scripts/bt_instance.sh terminate --instance MyVenueArb
 ```
 
-⚠️ StrategyStudio **does not support `--all`** — instance names are required.
+Terminate everything
+
+```bash
+./scripts/bt_instance.sh terminate --all
+```
+
+Or stop or pause everything
+
+```bash
+./scripts/bt_instance.sh stop --all
+```
+
+### StrategyStudio behaivor regarding these commands
+- `terminate`:
+  - kill the strategy
+  - frees resources
+  -instance disappears
+- `stop`:
+  - stops execution
+  - instance still exists
+- `pause`:
+  - temporary halt
+  - cant resume
 
 ---
 
