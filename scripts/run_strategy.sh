@@ -112,13 +112,13 @@ case "$CMD" in
     echo "=== Creating instance: $INSTANCE ==="
 
     "$BT_INSTANCE" create \
-      "$INSTANCE" \
-      "$STRATEGY_TYPE" \
-      "$GROUP" \
-      "$ACCOUNT" \
-      "$USERNAME" \
-      "$CASH" \
-      "$SYMBOLS"
+      --instance "$INSTANCE" \
+      --strategy "$STRATEGY_TYPE" \
+      --group "$GROUP" \
+      --account "$ACCOUNT" \
+      --user "$USERNAME" \
+      --cash "$CASH" \
+      --symbols "$SYMBOLS"
     ;;
 
   backtest)
@@ -152,13 +152,13 @@ case "$CMD" in
 
     echo "=== Creating instance ==="
     "$BT_INSTANCE" create \
-      "$INSTANCE" \
-      "$STRATEGY_TYPE" \
-      "$GROUP" \
-      "$ACCOUNT" \
-      "$USERNAME" \
-      "$CASH" \
-      "$SYMBOLS"
+      --instance "$INSTANCE" \
+      --strategy "$STRATEGY_TYPE" \
+      --group "$GROUP" \
+      --account "$ACCOUNT" \
+      --user "$USERNAME" \
+      --cash "$CASH" \
+      --symbols "$SYMBOLS"
 
     echo "=== Starting backtest ==="
     "$BT_INSTANCE" backtest \
