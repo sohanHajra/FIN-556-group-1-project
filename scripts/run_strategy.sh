@@ -27,8 +27,8 @@ INSTANCE="${BT_INSTANCE_NAME:-}"
 STRATEGY_TYPE="${BT_STRATEGY_TYPE:-}"
 SYMBOLS="${BT_SYMBOLS:-}"
 
-GROUP="${BT_GROUP:-UIUC}"             # UIUC
-ACCOUNT="${BT_ACCOUNT:-}"             # SIM-1001-101
+GROUP="${BT_GROUP:-UIUC}"          # e.g. UIUC
+ACCOUNT="${BT_ACCOUNT:-}"          # e.g. SIM-1001-101
 USERNAME="${BT_USER:-}"
 CASH="${BT_CASH:-9900000}"
 
@@ -57,8 +57,8 @@ Commands:
   run          start → recheck → create → backtest
 
 Options (override config):
-  --strategy_type STRATEGY_TYPE
   --instance INSTANCE_NAME
+  --strategy_type STRATEGY_TYPE
   --symbols "A|B|C"
   --start YYYY-MM-DD
   --end YYYY-MM-DD
@@ -87,8 +87,8 @@ shift
 # ================================
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --strategy_type) STRATEGY_TYPE="$2"; shift 2;;
     --instance) INSTANCE="$2"; shift 2;;
+    --strategy_type) STRATEGY_TYPE="$2"; shift 2;;
     --symbols) SYMBOLS="$2"; shift 2;;
     --start) START="$2"; shift 2;;
     --end) END="$2"; shift 2;;
@@ -110,19 +110,21 @@ case "$CMD" in
   create)
     require INSTANCE STRATEGY_TYPE GROUP ACCOUNT USERNAME SYMBOLS
     echo "=== Creating instance: $INSTANCE ==="
+
     "$BT_INSTANCE" create \
-      --instance "$INSTANCE" \
-      --strategy "$STRATEGY_TYPE" \
-      --account "$GROUP" \
-      --sim "$ACCOUNT" \
-      --user "$USERNAME" \
-      --cash "$CASH" \
-      --symbols "$SYMBOLS"
+      "$INSTANCE" \
+      "$STRATEGY_TYPE" \
+      "$GROUP" \
+      "$ACCOUNT" \
+      "$USERNAME" \
+      "$CASH" \
+      "$SYMBOLS"
     ;;
 
   backtest)
     require INSTANCE START END
     echo "=== Backtest: $INSTANCE ==="
+
     "$BT_INSTANCE" backtest \
       --instance "$INSTANCE" \
       --start "$START" \
@@ -148,15 +150,15 @@ case "$CMD" in
     "$BT_SERVER" start
     "$BT_INSTANCE" recheck
 
-    echo "=== Creating instance (must succeed) ==="
+    echo "=== Creating instance ==="
     "$BT_INSTANCE" create \
-      --instance "$INSTANCE" \
-      --strategy "$STRATEGY_TYPE" \
-      --account "$GROUP" \
-      --sim "$ACCOUNT" \
-      --user "$USERNAME" \
-      --cash "$CASH" \
-      --symbols "$SYMBOLS"
+      "$INSTANCE" \
+      "$STRATEGY_TYPE" \
+      "$GROUP" \
+      "$ACCOUNT" \
+      "$USERNAME" \
+      "$CASH" \
+      "$SYMBOLS"
 
     echo "=== Starting backtest ==="
     "$BT_INSTANCE" backtest \
