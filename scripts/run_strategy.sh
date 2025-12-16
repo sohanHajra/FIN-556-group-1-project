@@ -7,7 +7,7 @@ set -euo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 
 # ================================
-# Load shared config (required)
+# Load config
 # ================================
 CONFIG_FILE="$SCRIPT_DIR/bt_config.sh"
 LOCAL_CONFIG_FILE="$SCRIPT_DIR/bt_config.local.sh"
@@ -23,18 +23,21 @@ source "$CONFIG_FILE"
 # ================================
 # Defaults from config
 # ================================
-NETID="${BT_NETID:-$USER}"
-STRAT_DIR="${BT_STRATEGY_DIR:-}"
 INSTANCE="${BT_INSTANCE_NAME:-}"
-ACCOUNT="${BT_ACCOUNT:-UIUC}"
-SIM="${BT_SIM:-}"
+STRATEGY_TYPE="${BT_STRATEGY_TYPE:-}"
+SYMBOLS="${BT_SYMBOLS:-}"
+
+GROUP="${BT_GROUP:-UIUC}"
+ACCOUNT="${BT_ACCOUNT:-}"
 USERNAME="${BT_USER:-}"
 CASH="${BT_CASH:-9900000}"
-SYMBOLS="${BT_SYMBOLS:-}"
 
 START="${BT_BACKTEST_START:-}"
 END="${BT_BACKTEST_END:-}"
 MODE="${BT_BACKTEST_MODE:-0}"
+
+# Optional build input (directory name)
+STRAT_DIR=""
 
 # ================================
 # Script dependencies
@@ -50,7 +53,7 @@ Usage:
   $0 <command> [options]
 
 Commands:
-  build        Build + copy strategy
+  build        Build + copy strategy (.so)
   start        Start backtest server
   create       Create strategy instance
   backtest     Run backtest
@@ -58,10 +61,11 @@ Commands:
   list         List strategy instances
 
 Options (override config):
-  --strategy_dir STRATEGY_DIR
+  --strategy_dir STRATEGY_SOURCE_DIR
+  --strategy_type STRATEGY_TYPE
   --instance INSTANCE_NAME
+  --group GROUP
   --account ACCOUNT
-  --sim SIM-XXXX-XXX
   --user USERNAME
   --cash CASH
   --symbols "A|B|C"
@@ -72,11 +76,10 @@ Options (override config):
 Examples:
   $0 run
   $0 backtest --start 2023-10-01 --end 2023-10-31
-  $0 create --instance Test1
+  $0 create --instance TestInstance
 EOF
 }
 
-# ================================
 require() {
   for v in "$@"; do
     [[ -n "${!v}" ]] || {
@@ -99,9 +102,10 @@ shift
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --strategy_dir) STRAT_DIR="$2"; shift 2;;
+    --strategy_type) STRATEGY_TYPE="$2"; shift 2;;
     --instance) INSTANCE="$2"; shift 2;;
+    --group) GROUP="$2"; shift 2;;
     --account) ACCOUNT="$2"; shift 2;;
-    --sim) SIM="$2"; shift 2;;
     --user) USERNAME="$2"; shift 2;;
     --cash) CASH="$2"; shift 2;;
     --symbols) SYMBOLS="$2"; shift 2;;
@@ -119,7 +123,7 @@ done
 case "$CMD" in
   build)
     require STRAT_DIR
-    echo "=== Build strategy: $STRAT_DIR ==="
+    echo "=== Build strategy from dir: $STRAT_DIR ==="
     "$BUILD_SCRIPT" --name "$STRAT_DIR"
     ;;
 
@@ -129,13 +133,13 @@ case "$CMD" in
     ;;
 
   create)
-    require STRAT_DIR INSTANCE SIM USERNAME SYMBOLS
+    require INSTANCE STRATEGY_TYPE GROUP ACCOUNT USERNAME SYMBOLS
     echo "=== Create instance: $INSTANCE ==="
     "$BT_INSTANCE" create \
       --instance "$INSTANCE" \
-      --strategy "$STRAT_DIR" \
+      --strategy "$STRATEGY_TYPE" \
       --account "$ACCOUNT" \
-      --sim "$SIM" \
+      --sim "$GROUP" \
       --user "$USERNAME" \
       --cash "$CASH" \
       --symbols "$SYMBOLS"
@@ -156,24 +160,32 @@ case "$CMD" in
     ;;
 
   run)
-    require STRAT_DIR INSTANCE SIM USERNAME SYMBOLS START END
+    require INSTANCE STRATEGY_TYPE GROUP ACCOUNT USERNAME SYMBOLS START END
+
     echo "=== FULL PIPELINE ==="
-    "$BUILD_SCRIPT" --name "$STRAT_DIR"
+
+    if [[ -n "$STRAT_DIR" ]]; then
+      "$BUILD_SCRIPT" --name "$STRAT_DIR"
+    fi
+
     "$BT_SERVER" start
     "$BT_INSTANCE" recheck
+
     "$BT_INSTANCE" create \
       --instance "$INSTANCE" \
-      --strategy "$STRAT_DIR" \
+      --strategy "$STRATEGY_TYPE" \
       --account "$ACCOUNT" \
-      --sim "$SIM" \
+      --sim "$GROUP" \
       --user "$USERNAME" \
       --cash "$CASH" \
       --symbols "$SYMBOLS" || true
+
     "$BT_INSTANCE" backtest \
       --instance "$INSTANCE" \
       --start "$START" \
       --end "$END" \
       --mode "$MODE"
+
     echo "Backtest launched."
     ;;
 
