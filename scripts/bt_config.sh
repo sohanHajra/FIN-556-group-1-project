@@ -2,8 +2,8 @@
 # Backtest Defaults
 # ================================
 
-BT_BACKTEST_START="2023-09-05"
-BT_BACKTEST_END="2023-09-05"
+BT_BACKTEST_START="2025-04-01"
+BT_BACKTEST_END="2025-04-01"
 
 # 0 = quotes + trades
 # 1 = trades only
@@ -14,7 +14,7 @@ BT_BACKTEST_MODE="0"
 # ================================
 
 # Instance defaults
-BT_INSTANCE_NAME="Acharov2VenueArbInstance"
+BT_INSTANCE_NAME="Acharov2VenueArbInstance1000"
 BT_STRATEGY_TYPE="DiaIndexArbStrategy"
 BT_SYMBOLS="USO"
 
