@@ -26,7 +26,7 @@ done
 STRATS_DIR="${HOME}/ss/sdk/RCM/StrategyStudio/examples/strategies"
 TARGET="${STRATS_DIR}/${NAME}"
 
-[[ -d "$TARGET" ]] || { echo "❌ Missing strategy dir: $TARGET"; exit 1; }
+[[ -d "$TARGET" ]] || { echo "Missing strategy dir: $TARGET"; exit 1; }
 
 cd "$TARGET"
 
