@@ -1,6 +1,26 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
+# ---- CLI Logging (ADDED) ----
+CLI_LOG_DIR="/student_work/${USER}/ss_logs"
+CLI_LOG="$CLI_LOG_DIR/bt_cli.log"
+mkdir -p "$CLI_LOG_DIR"
+# Log to file AND terminal
+exec > >(tee -a "$CLI_LOG") 2>&1
+# ----------------------------
+
+UTIL_DIR="${HOME}/ss/bt/utilities"
+CLI="${UTIL_DIR}/StrategyCommandLine"
+# Load per-user config
+CONFIG_FILE="$(dirname "$0")/bt_config.sh"
+if [[ -f "$CONFIG_FILE" ]]; then
+  source "$CONFIG_FILE"
+else
+  echo "Missing config file: scripts/bt_config.sh"
+  echo "Copy scripts/bt_config.example.sh → bt_config.sh"
+  exit 1
+fi
+
 # ---- Paths ----
 BT_DIR="$HOME/ss/bt"
 BIN="$BT_DIR/StrategyServerBacktesting"
