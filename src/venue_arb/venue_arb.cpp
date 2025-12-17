@@ -111,6 +111,14 @@ void venue_arb::EvaluateArb(const Instrument* inst)
     if (!n.valid() || !i.valid())
         return;
 
+    std::cout
+        << "[ARB] "
+        << inst->symbol()
+        << " NASDAQ(" << QuoteToString(n) << ") "
+        << " IEX(" << QuoteToString(i) << ") "
+        << " threshold=" << arb_threshold_
+        << std::endl;
+
     int desired_position = 0;
 
     if (i.bid > 0 + arb_threshold_) {
@@ -129,13 +137,21 @@ void venue_arb::AdjustPortfolio(const Instrument* inst, int desired_position)
 
     int current_position = portfolio().position(inst);
     int trade_size = desired_position - current_position;
+    std::cout
+        << "[PORTFOLIO] "
+        << inst->symbol()
+        << " current=" << current_position
+        << " desired=" << desired_position
+        << " trade_size=" << trade_size
+        << std::endl;
 
     if (trade_size == 0)
         return;
 
-    if (orders().num_working_orders(inst) > 0)
+    if (orders().num_working_orders(inst) > 0) {
+       std::cout << "Working order exists, skipping"<< std::endl;
         return;
-
+    }
     SendOrder(inst, trade_size, MARKET_CENTER_ID_NASDAQ);
 }
 
@@ -157,6 +173,18 @@ void venue_arb::SendOrder(const Instrument* inst,
         trade_size > 0
             ? vq.ask - aggressiveness_
             : vq.bid + aggressiveness_;
+
+    std::cout
+        << "[SEND ORDER] "
+        << inst->symbol()
+        << " venue=" << (venue == MARKET_CENTER_ID_NASDAQ ? "NASDAQ" : "IEX")
+        << " side=" << (trade_size > 0 ? "BUY" : "SELL")
+        << " size=" << abs(trade_size)
+        << " price=" << price
+        << "\n  NASDAQ(" << QuoteToString(n) << ")"
+        << "\n  IEX(" << QuoteToString(i) << ")"
+        << "\n  aggressiveness=" << aggressiveness_
+        << std::endl;
 
     OrderParams params(
         *inst,
@@ -192,4 +220,12 @@ void venue_arb::OnParamChanged(StrategyParam& param)
     else if (param.param_name() == "debug") {
         param.Get(&debug_);
     }
+}
+
+static std::string QuoteToString(const VenueQuote& q)
+{
+    std::ostringstream oss;
+    oss << "bid=" << q.bid
+        << " ask=" << q.ask;
+    return oss.str();
 }
