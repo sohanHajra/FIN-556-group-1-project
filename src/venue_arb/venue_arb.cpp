@@ -19,6 +19,8 @@ venue_arb::venue_arb(StrategyID strategyID,
       position_size_(100),
       debug_(false)
 {
+    std::cout<<"In Constructor"<<std::endl;
+
 }
 
 venue_arb::~venue_arb() {}
@@ -69,6 +71,8 @@ void venue_arb::OnResetStrategyState()
 
 void venue_arb::OnQuote(const QuoteEventMsg& msg)
 {
+    std::cout<<"In OnQuote"<<std::endl;
+
     const Instrument* inst = &msg.instrument();
     MarketCenterID mc = msg.market_center_id();
 
@@ -92,10 +96,14 @@ void venue_arb::OnQuote(const QuoteEventMsg& msg)
 
 void venue_arb::EvaluateArb(const Instrument* inst)
 {
+    std::cout<<"In EvaluateArb"<<std::endl;
+
     if (!nasdaq_quotes_.count(inst) || !iex_quotes_.count(inst)) {
         return;
         std::cout<<"no data here (venuearbstrategy.cpp)"<<std::endl;
     }
+    
+    std::cout<<"Past no data conditional in EvaluateArb"<<std::endl;
 
     const VenueQuote& n = nasdaq_quotes_[inst];
     const VenueQuote& i = iex_quotes_[inst];
@@ -117,6 +125,8 @@ void venue_arb::EvaluateArb(const Instrument* inst)
 
 void venue_arb::AdjustPortfolio(const Instrument* inst, int desired_position)
 {
+    std::cout<<"In AdjustPortfolio"<<std::endl;
+
     int current_position = portfolio().position(inst);
     int trade_size = desired_position - current_position;
 
@@ -133,6 +143,8 @@ void venue_arb::SendOrder(const Instrument* inst,
                          int trade_size,
                          MarketCenterID venue)
 {
+    std::cout<<"In SendOrder"<<std::endl;
+
     const VenueQuote& vq =
         (venue == MARKET_CENTER_ID_NASDAQ)
             ? nasdaq_quotes_[inst]
