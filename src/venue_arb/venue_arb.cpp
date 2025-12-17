@@ -113,10 +113,10 @@ void venue_arb::EvaluateArb(const Instrument* inst)
 
     int desired_position = 0;
 
-    if (i.bid > n.ask + arb_threshold_) {
+    if (i.bid > 0 + arb_threshold_) {
         desired_position = position_size_;
     }
-    else if (n.bid > i.ask + arb_threshold_) {
+    else if (n.bid > 0 + arb_threshold_) {
         desired_position = -position_size_;
     }
 
