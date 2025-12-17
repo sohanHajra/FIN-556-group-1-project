@@ -9,6 +9,7 @@
 
 #include <sstream>
 
+static std::string QuoteToString(const VenueQuote& q);
 
 venue_arb::venue_arb(StrategyID strategyID,
                    const std::string& strategyName,
@@ -97,7 +98,6 @@ void venue_arb::EvaluateArb(const Instrument* inst)
 
     if (!nasdaq_quotes_.count(inst) || !iex_quotes_.count(inst)) {
         return;
-        std::cout<<"no data here (venuearbstrategy.cpp)"<<std::endl;
     }
     
 
@@ -153,6 +153,8 @@ void venue_arb::SendOrder(const Instrument* inst,
                          int trade_size,
                          MarketCenterID venue)
 {
+    const VenueQuote& n = nasdaq_quotes_[inst];
+    const VenueQuote& i = iex_quotes_[inst];
 
     const VenueQuote& vq =
         (venue == MARKET_CENTER_ID_NASDAQ)
