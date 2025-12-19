@@ -50,8 +50,21 @@ void etf_arb::DefineStrategyCommands() {
 void etf_arb::RegisterForStrategyEvents(
     StrategyEventRegister*, DateType) {
 
-    uso_ = InstrumentSet().GetInstrument("USO");
-    cl_  = InstrumentSet().GetInstrument("CL");
+    // THERE IS NO GET_INSTRUMENT function in strategy studio
+    // Need to get them from hook
+        
+    uso_ = nullptr;
+    cl_  = nullptr;
+
+    auto it = instrument_find("USO");
+    if (it != instrument_end()) {
+        uso_ = it->second;
+    }
+
+    it = instrument_find("CL");
+    if (it != instrument_end()) {
+        cl_ = it->second;
+    }
 }
 
 void etf_arb::OnResetStrategyState() {
@@ -60,6 +73,12 @@ void etf_arb::OnResetStrategyState() {
 }
 
 void etf_arb::OnQuote(const QuoteEventMsg& msg) {
+    // If we don't have the instruments, we can't do anything
+    if (!uso_ || !cl_) {
+        return;
+    }
+
+
     const Instrument& inst = msg.instrument();
     MarketCenterID mc = msg.market_center_id();
 
