@@ -63,7 +63,7 @@ class cme_parser{
             std::time_t t = std::chrono::system_clock::to_time_t(timestamp);
 
             // Convert to localtime
-            struct tm *tm_info = std::localtime(&t);
+            struct tm *tm_info = std::gmtime(&t);
 
             // Convert to seconds (as we know the timestamp is in nanoseconds)
             time_t sec2 = temp2.transactTime() / 1000000000;  // seconds part
