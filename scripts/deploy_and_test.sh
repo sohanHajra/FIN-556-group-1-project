@@ -36,6 +36,7 @@ BT_SERVER="$SCRIPT_DIR/bt_server.sh"
 DEPLOY="$SCRIPT_DIR/deploy_strategy.sh"
 RUN_STRATEGY="$SCRIPT_DIR/run_strategy.sh"
 SS_LOGS="$SCRIPT_DIR/ss_logs.sh"
+SS_LOG_MANAGER="$SCRIPT_DIR/ss_log_manager.sh"
 
 # ================================
 usage() {
@@ -55,6 +56,7 @@ Options (override config):
   --start YYYY-MM-DD          Backtest start date (from config or required)
   --end YYYY-MM-DD            Backtest end date (from config or required)
   --mode 0|1                  Backtest mode (0=quotes+trades, 1=trades only)
+  --clean                     Clean backtest server logs before starting
   --no-logs                   Don't show logs at the end
 
 Examples:
@@ -67,6 +69,7 @@ EOF
 # Parse flags
 # ================================
 SHOW_LOGS=1
+CLEAN_LOGS=0
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -75,6 +78,7 @@ while [[ $# -gt 0 ]]; do
     --start) START="$2"; shift 2;;
     --end) END="$2"; shift 2;;
     --mode) MODE="$2"; shift 2;;
+    --clean) CLEAN_LOGS=1; shift;;
     --no-logs) SHOW_LOGS=0; shift;;
     -h|--help) usage; exit 0;;
     *) echo "Unknown arg: $1"; usage; exit 1;;
@@ -119,6 +123,13 @@ echo "Instance: $INSTANCE"
 echo "Date range: $START to $END"
 echo ""
 
+# Step 0: Clean logs (if requested)
+if [[ "$CLEAN_LOGS" -eq 1 ]]; then
+  echo "=== Step 0: Cleaning backtest server logs ==="
+  "$SS_LOG_MANAGER" clean bt
+  echo ""
+fi
+
 # Step 1: Restart server
 echo "=== Step 1: Restarting backtest server ==="
 "$BT_SERVER" stop || true
@@ -129,6 +140,11 @@ echo ""
 # Step 2: Deploy strategy
 echo "=== Step 2: Deploying strategy ==="
 "$DEPLOY" --name "$STRATEGY_NAME"
+echo ""
+
+# Step 2.5: Terminate all instances
+echo "=== Step 2.5: Terminating all existing instances ==="
+"$RUN_STRATEGY" killall || true
 echo ""
 
 # Step 3: Run backtest
