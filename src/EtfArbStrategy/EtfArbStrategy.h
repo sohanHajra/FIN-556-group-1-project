@@ -33,3 +33,31 @@ private:
     double exit_threshold_; // Unused currently, but good to have
     double position_size_; // Changed to double for better precision with weights
 };
+
+extern "C" {
+    _STRATEGY_EXPORTS const char* GetType() {
+        return "EtfArbStrategy";
+    }
+
+    _STRATEGY_EXPORTS IStrategy* CreateStrategy(const char* strategyType,
+                                                unsigned strategyID,
+                                                const char* strategyName,
+                                                const char* groupName) {
+        if (strcmp(strategyType, GetType()) == 0) {
+            return new EtfArbStrategy(strategyID, strategyName, groupName);
+        }
+        return NULL;
+    }
+
+    _STRATEGY_EXPORTS const char* GetAuthor() {
+        return "dlariviere";
+    }
+
+    _STRATEGY_EXPORTS const char* GetAuthorGroup() {
+        return "UIUC";
+    }
+
+    _STRATEGY_EXPORTS const char* GetReleaseVersion() {
+        return Strategy::release_version();
+    }
+}

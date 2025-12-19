@@ -155,31 +155,3 @@ void EtfArbStrategy::ExecuteArbitrage(double spread) {
         }
     }
 }
-
-extern "C" {
-    _STRATEGY_EXPORTS const char* GetType() {
-        return "EtfArbStrategy";
-    }
-
-    _STRATEGY_EXPORTS IStrategy* CreateStrategy(const char* strategyType,
-                                                unsigned strategyID,
-                                                const char* strategyName,
-                                                const char* groupName) {
-        if (strcmp(strategyType, GetType()) == 0) {
-            return new EtfArbStrategy(strategyID, strategyName, groupName);
-        }
-        return NULL;
-    }
-
-    _STRATEGY_EXPORTS const char* GetAuthor() {
-        return "StudentName";
-    }
-
-    _STRATEGY_EXPORTS const char* GetAuthorGroup() {
-        return "StudentGroup";
-    }
-
-    _STRATEGY_EXPORTS const char* GetReleaseVersion() {
-        return "1.0";
-    }
-}
