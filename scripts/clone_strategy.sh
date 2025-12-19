@@ -6,6 +6,17 @@ usage() {
 Usage:
   $0 [--netid NETID] [--template TEMPLATE_DIR] [--name NEW_STRATEGY_DIRNAME]
 
+This script creates a new strategy directory in StrategyStudio by cloning a template.
+This is typically the FIRST STEP when setting up a new strategy.
+
+Workflow:
+  1. Run this script to create the StrategyStudio directory
+  2. Then either:
+     a) Use deploy_strategy.sh to copy from repo src/ and build:
+        ./scripts/deploy_strategy.sh --name <STRATEGY_NAME>
+     b) Or manually edit files and use build_copy_strategy.sh:
+        ./scripts/build_copy_strategy.sh --name <STRATEGY_NAME>
+
 Defaults:
   --netid     \$USER
   --template  dia_index_arb_strategy
@@ -118,5 +129,14 @@ else
   echo "No Makefile found; skipping Makefile updates."
 fi
 
-echo "Strategy cloned at: $STRATS_DIR/$NEWNAME"
-echo "   Next: build+copy via ./scripts/build_copy_strategy.sh --name $NEWNAME"
+echo ""
+echo "✅ Strategy cloned at: $STRATS_DIR/$NEWNAME"
+echo ""
+echo "📋 Next steps:"
+echo "   Option 1 (recommended for repo-based workflows):"
+echo "     ./scripts/deploy_strategy.sh --name $NEWNAME"
+echo "     (Copies from ./src/$NEWNAME/ and builds)"
+echo ""
+echo "   Option 2 (if editing directly in StrategyStudio):"
+echo "     ./scripts/build_copy_strategy.sh --name $NEWNAME"
+echo "     (Builds the strategy in place)"

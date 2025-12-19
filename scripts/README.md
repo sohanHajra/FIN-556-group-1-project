@@ -67,6 +67,8 @@ This:
 
 You only need to do this **once per strategy name**.
 
+**After cloning**, you can use `deploy_strategy.sh` (see "Daily workflow" below) to copy your code from `src/` and build.
+
 ---
 
 ### 2️) Make sure the backtest server can run
@@ -110,6 +112,8 @@ Do **not** edit StrategyStudio SDK files directly.
 
 This overwrites the StrategyStudio files and rebuilds the `.so`.
 
+**Note:** You must have run `clone_strategy.sh` first (see "One-time setup" above) to create the StrategyStudio directory.
+
 ```bash
 ./scripts/deploy_strategy.sh --name venue_arb
 ```
@@ -120,6 +124,32 @@ What this does:
 * runs `make`
 * runs `make copy_strategy`
 * places the `.so` in the backtest runtime directory
+
+---
+
+### 2b) Quick deploy + test (convenience script)
+
+For a complete workflow in one command, use `deploy_and_test.sh`:
+
+```bash
+./scripts/deploy_and_test.sh \
+  --strategy venue_arb \
+  --instance MyTest \
+  --start 2023-09-05 \
+  --end 2023-09-05
+```
+
+This script automatically:
+1. Stops and restarts the backtest server
+2. Deploys and builds the strategy
+3. Runs the backtest
+4. Shows backtest server logs
+
+You can use config defaults from `bt_config.sh` and only specify the strategy:
+
+```bash
+./scripts/deploy_and_test.sh --strategy venue_arb
+```
 
 ---
 
