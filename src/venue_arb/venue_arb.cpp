@@ -107,13 +107,13 @@ void venue_arb::EvaluateArb(const Instrument* inst)
     if (!n.valid() || !i.valid())
         return;
 
-    std::cout
-        << "[ARB] "
-        << inst->symbol()
-        << " NASDAQ(" << QuoteToString(n) << ") "
-        << " IEX(" << QuoteToString(i) << ") "
-        << " threshold=" << arb_threshold_
-        << std::endl;
+    // std::cout
+    //     << "[ARB] "
+    //     << inst->symbol()
+    //     << " NASDAQ(" << QuoteToString(n) << ") "
+    //     << " IEX(" << QuoteToString(i) << ") "
+    //     << " threshold=" << arb_threshold_
+    //     << std::endl;
 
     int desired_position = 0;
 
@@ -132,13 +132,13 @@ void venue_arb::AdjustPortfolio(const Instrument* inst, int desired_position)
 
     int current_position = portfolio().position(inst);
     int trade_size = desired_position - current_position;
-    std::cout
-        << "[PORTFOLIO] "
-        << inst->symbol()
-        << " current=" << current_position
-        << " desired=" << desired_position
-        << " trade_size=" << trade_size
-        << std::endl;
+    // std::cout
+    //     << "[PORTFOLIO] "
+    //     << inst->symbol()
+    //     << " current=" << current_position
+    //     << " desired=" << desired_position
+    //     << " trade_size=" << trade_size
+    //     << std::endl;
 
     if (trade_size == 0)
         return;
