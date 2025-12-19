@@ -77,7 +77,20 @@ class cme_parser{
                     //CLM5
                     // message << ",{" << mbofd.orderID() << "," << mbofd.mDOrderPriority() << "," << mbofd.mDEntryPx() << "," << mbofd.mDDisplayQty() << "," << mbofd.securityID() << "," << mbofd.mDUpdateAction() << "," << mbofd.mDEntryType()<<"}";
                     double mantissa = mbofd.mDEntryPx().mantissa() * 1e-9;
-                    message << std::put_time(tm_info, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(6) << std::setfill('0') << timeUSec << ","<< std::put_time(tm_info2, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(9) << std::setfill('0') << ns<<",,P,CME," << mbofd.mDEntryType() << "," << mantissa << ","<< mbofd.mDEntrySize() << "\n";
+                    int side = 0;
+                    int numOrders = 0;
+                    if(mbofd.mDEntryType()=='E'){
+                        message << std::put_time(tm_info, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(6) << std::setfill('0') << timeUSec << ","<< std::put_time(tm_info2, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(9) << std::setfill('0') << ns<<",,P,CME," << "1" << "," << mantissa << ","<< mbofd.mDEntrySize() << ",0" << "," << "1" <<"\n";
+                    }
+                    else if(mbofd.mDEntryType()=='F'){
+                        message << std::put_time(tm_info, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(6) << std::setfill('0') << timeUSec << ","<< std::put_time(tm_info2, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(9) << std::setfill('0') << ns<<",,P,CME," << "2" << "," << mantissa << ","<< mbofd.mDEntrySize() << ",0" << "," << "1" <<"\n";
+                    }
+                    else if(mbofd.mDEntryType()=='0'){
+                        message << std::put_time(tm_info, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(6) << std::setfill('0') << timeUSec << ","<< std::put_time(tm_info2, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(9) << std::setfill('0') << ns<<",,P,CME," << "1" << "," << mantissa << ","<< mbofd.mDEntrySize() << "," <<mbofd.numberOfOrders()<< "," << "0" <<"\n";
+                    }
+                    else if(mbofd.mDEntryType()=='1'){
+                        message << std::put_time(tm_info, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(6) << std::setfill('0') << timeUSec << ","<< std::put_time(tm_info2, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(9) << std::setfill('0') << ns<<",,P,CME," << "2" << "," << mantissa << ","<< mbofd.mDEntrySize() << "," <<mbofd.numberOfOrders()<< "," << "0" <<"\n";
+                    }
                 }
                 // else if(mbofd.securityID()==423318){
                 //     double mantissa = mbofd.mDEntryPx().mantissa() * 1e-9;
@@ -190,7 +203,7 @@ class cme_parser{
             }
             // output << "BlockLength,TemplateID,SchemaID,Version,TemplateInfo" << endl;
             // output << "OrderID, OrderPriority, Price, DisplayQuantity, Symbol, UpdateAction, EntryType" << endl;
-            output << "COLLECTION_TIME,SOURCE_TIME,SEQ_NUM,TICK_TYPE,MARKET_CENTER,SIDE,PRICE,SIZE" << endl;
+            output << "COLLECTION_TIME,SOURCE_TIME,SEQ_NUM,TICK_TYPE,MARKET_CENTER,SIDE,PRICE,SIZE,NUMBER_ORDERS,IS_IMPLIED" << endl;
             // output << "ChangePosition,PcapLength,MsgSize,blockLength,tempID,schemaID,Version" << endl;
             // for(int i = 0; i <1500;i++){
             //     if(i%16==0) cout<<endl;
