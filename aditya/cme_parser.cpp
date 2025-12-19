@@ -73,9 +73,16 @@ class cme_parser{
             while(mbofd.hasNext()){
                 // if(hasOne) message <<",";
                 mbofd.next();
-                //CLM5
-                double mantissa = mbofd.mDEntryPx().mantissa() * 1e-9;
-                message << std::put_time(tm_info, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(6) << std::setfill('0') << timeUSec << ","<< std::put_time(tm_info2, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(9) << std::setfill('0') << ns<<",,P,CME," << mbofd.mDEntryType() << "," << mantissa << ","<< mbofd.mDEntrySize() << "\n";
+                if(mbofd.securityID()==134373){
+                    //CLM5
+                    // message << ",{" << mbofd.orderID() << "," << mbofd.mDOrderPriority() << "," << mbofd.mDEntryPx() << "," << mbofd.mDDisplayQty() << "," << mbofd.securityID() << "," << mbofd.mDUpdateAction() << "," << mbofd.mDEntryType()<<"}";
+                    double mantissa = mbofd.mDEntryPx().mantissa() * 1e-9;
+                    message << std::put_time(tm_info, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(6) << std::setfill('0') << timeUSec << ","<< std::put_time(tm_info2, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(9) << std::setfill('0') << ns<<",,P,CME," << mbofd.mDEntryType() << "," << mantissa << ","<< mbofd.mDEntrySize() << "\n";
+                }
+                // else if(mbofd.securityID()==423318){
+                //     double mantissa = mbofd.mDEntryPx().mantissa() * 1e-9;
+                //     message << mbofd.orderID() << "," << mbofd.mDOrderPriority() << "," << mantissa << "," << mbofd.mDDisplayQty() << "," << "CLK5" << "," << mbofd.mDUpdateAction() << "," << mbofd.mDEntryType()<<"\n";;
+                // }
 
             }
             // message <<",,P,CME,"<< temp2;
