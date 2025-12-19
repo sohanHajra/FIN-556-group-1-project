@@ -134,8 +134,9 @@ void venue_arb::EvaluateArb(const Instrument* inst)
         exec_venue = MARKET_CENTER_ID_IEX;
         desired_position = -position_size_;
     }
-
-    AdjustPortfolio(inst, desired_position, exec_venue);
+    
+    if (desired_position != 0)
+        AdjustPortfolio(inst, desired_position, exec_venue);
 }
 
 void venue_arb::AdjustPortfolio(const Instrument* inst, int desired_position, MarketCenterID venue)
