@@ -35,6 +35,7 @@ MODE="${BT_BACKTEST_MODE:-0}"
 BT_SERVER="$SCRIPT_DIR/bt_server.sh"
 DEPLOY="$SCRIPT_DIR/deploy_strategy.sh"
 RUN_STRATEGY="$SCRIPT_DIR/run_strategy.sh"
+BT_INSTANCE="$SCRIPT_DIR/bt_instance.sh"
 SS_LOGS="$SCRIPT_DIR/ss_logs.sh"
 SS_LOG_MANAGER="$SCRIPT_DIR/ss_log_manager.sh"
 
@@ -127,41 +128,93 @@ echo ""
 if [[ "$CLEAN_LOGS" -eq 1 ]]; then
   echo "=== Step 0: Cleaning backtest server logs ==="
   "$SS_LOG_MANAGER" clean bt
+  echo "Logs cleaned."
   echo ""
+  sleep 2
 fi
 
 # Step 1: Restart server
 echo "=== Step 1: Restarting backtest server ==="
+echo "Stopping server (if running)..."
 "$BT_SERVER" stop || true
+echo "Waiting for server to fully stop..."
 sleep 5
+echo "Starting backtest server..."
 "$BT_SERVER" start
+echo "Waiting for server to initialize..."
+sleep 3
+if "$BT_SERVER" status >/dev/null 2>&1; then
+  echo "✓ Server is running"
+else
+  echo "✗ Server failed to start!"
+  exit 1
+fi
 echo ""
 
 # Step 2: Deploy strategy
 echo "=== Step 2: Deploying strategy ==="
+echo "Copying source files and building..."
 "$DEPLOY" --name "$STRATEGY_NAME"
+echo "Waiting for build to complete..."
+sleep 2
+echo "✓ Strategy deployed and built"
 echo ""
 
-# Step 2.5: Terminate all instances
-echo "=== Step 2.5: Terminating all existing instances ==="
+# Step 2.5: Recheck strategy DLLs (reload after deploy)
+echo "=== Step 2.5: Rechecking strategy DLLs ==="
+echo "Reloading strategy libraries..."
+"$BT_INSTANCE" recheck
+echo "Waiting for DLL reload to complete..."
+sleep 3
+echo "✓ Strategy DLLs reloaded"
+echo ""
+
+# Step 2.6: Terminate all instances
+echo "=== Step 2.6: Terminating all existing instances ==="
+echo "Terminating all strategy instances..."
 "$RUN_STRATEGY" killall || true
+echo "Waiting for server to stabilize after termination..."
+sleep 5
+
+# Verify server is still running
+echo "Verifying server is still running..."
+if ! "$BT_SERVER" status >/dev/null 2>&1; then
+  echo "⚠ Server disconnected, restarting..."
+  "$BT_SERVER" start
+  echo "Waiting for server to restart..."
+  sleep 5
+  if "$BT_SERVER" status >/dev/null 2>&1; then
+    echo "✓ Server restarted successfully"
+  else
+    echo "✗ Server failed to restart!"
+    exit 1
+  fi
+else
+  echo "✓ Server is still running"
+fi
 echo ""
 
 # Step 3: Run backtest
 echo "=== Step 3: Running backtest ==="
+echo "Starting backtest for instance: $INSTANCE"
+echo "Date range: $START to $END"
 "$RUN_STRATEGY" backtest \
   --instance "$INSTANCE" \
   --start "$START" \
   --end "$END" \
   --mode "$MODE"
+echo "Waiting for backtest to initialize..."
+sleep 3
+echo "✓ Backtest command sent"
 echo ""
 
 # Step 4: Show logs
 if [[ "$SHOW_LOGS" -eq 1 ]]; then
   echo "=== Step 4: Showing backtest server logs ==="
+  echo "Waiting before showing logs..."
+  sleep 2
   echo "(Press 'q' to quit the log viewer)"
   echo ""
-  sleep 2
   "$SS_LOGS" bt
 else
   echo "=== Step 4: Skipping logs (use --no-logs to suppress this message) ==="
@@ -169,5 +222,7 @@ else
 fi
 
 echo ""
-echo "Workflow complete!"
+echo "=========================================="
+echo "✓ Workflow complete!"
+echo "=========================================="
 
