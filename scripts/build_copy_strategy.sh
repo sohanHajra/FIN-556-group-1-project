@@ -6,6 +6,14 @@ usage() {
 Usage:
   $0 --name STRATEGY_DIRNAME
 
+Builds and copies a strategy that already exists in StrategyStudio.
+Use this when you've edited files directly in the StrategyStudio directory.
+
+For repo-based workflows (editing in ./src/), use deploy_strategy.sh instead:
+  ./scripts/deploy_strategy.sh --name STRATEGY_NAME
+
+Note: The strategy directory must already exist (created via clone_strategy.sh).
+
 Example:
   $0 --name acharov2_strategy
 EOF
@@ -35,4 +43,8 @@ make clean
 make
 make copy_strategy
 
+echo ""
 echo "Built + copied strategy: $NAME"
+echo ""
+echo "Tip: If you're editing in ./src/$NAME/, use deploy_strategy.sh instead:"
+echo "   ./scripts/deploy_strategy.sh --name $NAME"
