@@ -147,10 +147,6 @@ void venue_arb::EvaluateArb(const Instrument* inst)
                         -position_size_,
                         MARKET_CENTER_ID_NASDAQ);
     }
-
-    if (desired_position != 0) {
-        AdjustPortfolio(inst, desired_position, venue);
-    }
 }
 
 void venue_arb::AdjustPortfolio(const Instrument* inst, int desired_position, MarketCenterID venue)
