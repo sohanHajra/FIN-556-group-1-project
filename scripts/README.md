@@ -127,6 +127,32 @@ What this does:
 
 ---
 
+### 2b) Quick deploy + test (convenience script)
+
+For a complete workflow in one command, use `deploy_and_test.sh`:
+
+```bash
+./scripts/deploy_and_test.sh \
+  --strategy venue_arb \
+  --instance MyTest \
+  --start 2023-09-05 \
+  --end 2023-09-05
+```
+
+This script automatically:
+1. Stops and restarts the backtest server
+2. Deploys and builds the strategy
+3. Runs the backtest
+4. Shows backtest server logs
+
+You can use config defaults from `bt_config.sh` and only specify the strategy:
+
+```bash
+./scripts/deploy_and_test.sh --strategy venue_arb
+```
+
+---
+
 ### 3️) Run a backtest
 
 Create an instance (only once per instance name):
