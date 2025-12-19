@@ -124,18 +124,21 @@ void venue_arb::EvaluateArb(const Instrument* inst)
     //     << std::endl;
 
     int desired_position = 0;
+    MarketCenterID exec_venue = MARKET_CENTER_ID_NASDAQ;
 
     if (i.bid >= n.ask + arb_threshold_) {
+        exec_venue = MARKET_CENTER_ID_NASDAQ;
         desired_position = position_size_;
     }
     else if (n.bid >= i.ask + arb_threshold_) {
+        exec_venue = MARKET_CENTER_ID_IEX;
         desired_position = -position_size_;
     }
 
-    AdjustPortfolio(inst, desired_position);
+    AdjustPortfolio(inst, desired_position, exec_venue);
 }
 
-void venue_arb::AdjustPortfolio(const Instrument* inst, int desired_position)
+void venue_arb::AdjustPortfolio(const Instrument* inst, int desired_position, MarketCenterID venue)
 {
 
     int current_position = portfolio().position(inst);
@@ -154,7 +157,7 @@ void venue_arb::AdjustPortfolio(const Instrument* inst, int desired_position)
     if (orders().num_working_orders(inst) > 0) {
         return;
     }
-    SendOrder(inst, trade_size, MARKET_CENTER_ID_NASDAQ);
+    SendOrder(inst, trade_size, venue);
 }
 
 void venue_arb::SendOrder(const Instrument* inst,
