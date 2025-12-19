@@ -1,223 +1,93 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# ============================================================================
+# Manual Workflow Guide - Deploy and Test Strategy
+# ============================================================================
+#
+# This file documents the manual steps to deploy and test a strategy.
+# Run these commands in order:
+#
+# ============================================================================
+# Step 0 (Optional): Clean backtest server logs
+# ============================================================================
+# ./scripts/ss_log_manager.sh clean bt
+#
+# ============================================================================
+# Step 1: Restart backtest server
+# ============================================================================
+# ./scripts/bt_server.sh stop
+# sleep 3
+# ./scripts/bt_server.sh start
+# sleep 3
+#
+# ============================================================================
+# Step 2: Deploy strategy (builds and copies)
+# ============================================================================
+# ./scripts/deploy_strategy.sh --name <STRATEGY_NAME>
+# sleep 2
+#
+# Example:
+# ./scripts/deploy_strategy.sh --name venue_arb
+#
+# ============================================================================
+# Step 3: Terminate all existing instances
+# ============================================================================
+# ./scripts/run_strategy.sh killall
+# sleep 8
+#
+# ============================================================================
+# Step 4: Run full pipeline (recheck → create → backtest)
+# ============================================================================
+# ./scripts/run_strategy.sh run
+#
+# This will:
+# - Start server (if not running)
+# - Recheck strategy DLLs
+# - Create strategy instance
+# - Start backtest
+#
+# You can override config values:
+# ./scripts/run_strategy.sh run --start 2025-04-01 --end 2025-04-01
+#
+# ============================================================================
+# Step 5 (Optional): Show backtest server logs
+# ============================================================================
+# ./scripts/ss_logs.sh bt
+#
+# ============================================================================
+# Complete Example Workflow
+# ============================================================================
+#
+# # Clean logs (optional)
+# ./scripts/ss_log_manager.sh clean bt
+#
+# # Restart server
+# ./scripts/bt_server.sh stop
+# sleep 3
+# ./scripts/bt_server.sh start
+# sleep 3
+#
+# # Deploy strategy
+# ./scripts/deploy_strategy.sh --name venue_arb
+# sleep 2
+#
+# # Kill all instances
+# ./scripts/run_strategy.sh killall
+# sleep 8
+#
+# # Run full pipeline
+# ./scripts/run_strategy.sh run
+#
+# # View logs (optional)
+# ./scripts/ss_logs.sh bt
+#
+# ============================================================================
 
-# ================================
-# Resolve script directory
-# ================================
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-
-# ================================
-# Load config
-# ================================
-CONFIG_FILE="$SCRIPT_DIR/bt_config.sh"
-LOCAL_CONFIG_FILE="$SCRIPT_DIR/bt_config.local.sh"
-
-[[ -f "$CONFIG_FILE" ]] || {
-  echo "❌ Missing config: $CONFIG_FILE"
-  exit 1
-}
-
-source "$CONFIG_FILE"
-[[ -f "$LOCAL_CONFIG_FILE" ]] && source "$LOCAL_CONFIG_FILE"
-
-# ================================
-# Defaults from config
-# ================================
-STRATEGY_NAME="${BT_STRATEGY_TYPE:-}"
-INSTANCE="${BT_INSTANCE_NAME:-}"
-START="${BT_BACKTEST_START:-}"
-END="${BT_BACKTEST_END:-}"
-MODE="${BT_BACKTEST_MODE:-0}"
-GROUP="${BT_GROUP:-UIUC}"
-ACCOUNT="${BT_ACCOUNT:-}"
-USERNAME="${BT_USER:-}"
-CASH="${BT_CASH:-9900000}"
-SYMBOLS="${BT_SYMBOLS:-}"
-
-# ================================
-# Script dependencies
-# ================================
-BT_SERVER="$SCRIPT_DIR/bt_server.sh"
-DEPLOY="$SCRIPT_DIR/deploy_strategy.sh"
-RUN_STRATEGY="$SCRIPT_DIR/run_strategy.sh"
-BT_INSTANCE="$SCRIPT_DIR/bt_instance.sh"
-SS_LOGS="$SCRIPT_DIR/ss_logs.sh"
-SS_LOG_MANAGER="$SCRIPT_DIR/ss_log_manager.sh"
-
-# ================================
-usage() {
-  cat <<EOF
-Usage:
-  $0 [options]
-
-Simple convenience script that:
-  1. (Optional) Cleans backtest server logs
-  2. Stops and restarts the backtest server
-  3. Deploys the strategy (builds and copies)
-  4. Terminates all existing instances
-  5. Rechecks strategy DLLs
-  6. Creates strategy instance
-  7. Runs backtest
-  8. (Optional) Shows backtest server logs
-
-Options:
-  --strategy STRATEGY_NAME    Strategy name (required)
-  --clean                     Clean backtest server logs before starting
-  --no-logs                   Don't show logs at the end
-
-All other parameters (instance, start, end, mode, group, account, user, cash, symbols)
-are read from bt_config.sh
-
-Examples:
-  $0 --strategy venue_arb
-  $0 --strategy venue_arb --clean
-EOF
-}
-
-# ================================
-# Parse flags
-# ================================
-SHOW_LOGS=1
-CLEAN_LOGS=0
-RUN_STRATEGY_ARGS=()
-
-while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --strategy) STRATEGY_NAME="$2"; shift 2;;
-    --clean) CLEAN_LOGS=1; shift;;
-    --no-logs) SHOW_LOGS=0; shift;;
-    -h|--help) usage; exit 0;;
-    *) 
-      # Pass through any other args to run_strategy.sh
-      RUN_STRATEGY_ARGS+=("$1")
-      shift
-      ;;
-  esac
-done
-
-# ================================
-# Validate required params
-# ================================
-[[ -n "$STRATEGY_NAME" ]] || {
-  echo "❌ --strategy is required"
-  usage
-  exit 1
-}
-
-# Validate required config values
-[[ -n "$INSTANCE" ]] || {
-  echo "❌ BT_INSTANCE_NAME is required in bt_config.sh"
-  exit 1
-}
-[[ -n "$START" ]] || {
-  echo "❌ BT_BACKTEST_START is required in bt_config.sh"
-  exit 1
-}
-[[ -n "$END" ]] || {
-  echo "❌ BT_BACKTEST_END is required in bt_config.sh"
-  exit 1
-}
-[[ -n "$GROUP" ]] || {
-  echo "❌ BT_GROUP is required in bt_config.sh"
-  exit 1
-}
-[[ -n "$ACCOUNT" ]] || {
-  echo "❌ BT_ACCOUNT is required in bt_config.sh"
-  exit 1
-}
-[[ -n "$USERNAME" ]] || {
-  echo "❌ BT_USER is required in bt_config.sh"
-  exit 1
-}
-[[ -n "$SYMBOLS" ]] || {
-  echo "❌ BT_SYMBOLS is required in bt_config.sh"
-  exit 1
-}
-
-# ================================
-# Main workflow
-# ================================
-echo "=========================================="
-echo "( O_O ) Deploy and Test Workflow"
-echo "=========================================="
-echo "Strategy: $STRATEGY_NAME"
+echo "This script has been replaced with a manual workflow guide."
+echo "See the comments in this file for step-by-step instructions."
 echo ""
-
-# Step 0: Clean logs (if requested)
-if [[ "$CLEAN_LOGS" -eq 1 ]]; then
-  echo "=== Step 0: Cleaning backtest server logs ==="
-  "$SS_LOG_MANAGER" clean bt
-  echo "✓ Logs cleaned"
-  echo ""
-fi
-
-# Step 1: Restart server
-echo "=== Step 1: Restarting backtest server ==="
-"$BT_SERVER" stop || true
-sleep 3
-"$BT_SERVER" start
-sleep 3
-echo "✓ Server restarted"
-echo ""
-
-# Step 2: Deploy strategy
-echo "=== Step 2: Deploying strategy ==="
-"$DEPLOY" --name "$STRATEGY_NAME"
-sleep 2
-echo "✓ Strategy deployed and built"
-echo ""
-
-# Step 3: Terminate all instances
-echo "=== Step 3: Terminating all existing instances ==="
-"$RUN_STRATEGY" killall || true
-echo "Waiting for instances to fully terminate..."
-sleep 8
-echo "✓ All instances terminated"
-echo ""
-
-# Step 4: Create instance
-echo "=== Step 4: Creating strategy instance ==="
-"$BT_INSTANCE" create \
-  --instance "$INSTANCE" \
-  --strategy "$STRATEGY_NAME" \
-  --group "$GROUP" \
-  --account "$ACCOUNT" \
-  --user "$USERNAME" \
-  --cash "$CASH" \
-  --symbols "$SYMBOLS"
-sleep 2
-echo "✓ Instance created"
-echo ""
-
-# Step 5: Recheck strategy DLLs (after instance creation)
-echo "=== Step 5: Rechecking strategy DLLs ==="
-"$BT_INSTANCE" recheck
-sleep 2
-echo "✓ Strategy DLLs reloaded"
-echo ""
-
-# Step 6: Run backtest
-echo "=== Step 6: Running backtest ==="
-"$BT_INSTANCE" backtest \
-  --instance "$INSTANCE" \
-  --start "$START" \
-  --end "$END" \
-  --mode "$MODE"
-sleep 2
-echo "✓ Backtest started"
-echo ""
-
-# Step 7: Show logs
-if [[ "$SHOW_LOGS" -eq 1 ]]; then
-  echo "=== Step 7: Showing backtest server logs ==="
-  sleep 2
-  echo "(Press 'q' to quit the log viewer)"
-  echo ""
-  "$SS_LOGS" bt
-fi
-
-echo ""
-echo "=========================================="
-echo "✓ Workflow complete!"
-echo "=========================================="
-
+echo "Quick reference:"
+echo "  1. ./scripts/bt_server.sh stop && sleep 3 && ./scripts/bt_server.sh start"
+echo "  2. ./scripts/deploy_strategy.sh --name <STRATEGY>"
+echo "  3. ./scripts/run_strategy.sh killall && sleep 8"
+echo "  4. ./scripts/run_strategy.sh run"
+echo "  5. ./scripts/ss_logs.sh bt  (optional)"
