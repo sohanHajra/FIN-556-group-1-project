@@ -67,6 +67,8 @@ This:
 
 You only need to do this **once per strategy name**.
 
+**After cloning**, you can use `deploy_strategy.sh` (see "Daily workflow" below) to copy your code from `src/` and build.
+
 ---
 
 ### 2️) Make sure the backtest server can run
@@ -109,6 +111,8 @@ Do **not** edit StrategyStudio SDK files directly.
 ### 2️) Deploy + build the strategy
 
 This overwrites the StrategyStudio files and rebuilds the `.so`.
+
+**Note:** You must have run `clone_strategy.sh` first (see "One-time setup" above) to create the StrategyStudio directory.
 
 ```bash
 ./scripts/deploy_strategy.sh --name venue_arb
