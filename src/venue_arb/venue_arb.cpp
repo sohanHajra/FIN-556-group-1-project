@@ -129,10 +129,12 @@ void venue_arb::EvaluateArb(const Instrument* inst)
     if (i.bid >= n.ask + arb_threshold_) {
         exec_venue = MARKET_CENTER_ID_NASDAQ;
         desired_position = position_size_;
+        venue = MARKET_CENTER_ID_NASDAQ;
     }
     else if (n.bid >= i.ask + arb_threshold_) {
         exec_venue = MARKET_CENTER_ID_IEX;
         desired_position = -position_size_;
+        venue = MARKET_CENTER_ID_NASDAQ;
     }
     
     if (desired_position != 0)
