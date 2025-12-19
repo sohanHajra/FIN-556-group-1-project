@@ -87,7 +87,9 @@ extern "C" {
                                                 const char* strategyName,
                                                 const char* groupName) {
         if (std::strcmp(strategyType, GetType()) == 0) {
-            return new etf_arb(strategyID, strategyName, groupName);
+            // Need to use conversion operator on object not pointer
+            // this is to invoke IStrategy* operator
+            return new *(new etf_arb(strategyID, strategyName, groupName));
         }
         return nullptr;
     }
