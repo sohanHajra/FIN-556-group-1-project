@@ -141,8 +141,8 @@ echo "Waiting for server to fully stop..."
 sleep 5
 echo "Starting backtest server..."
 "$BT_SERVER" start
-echo "Waiting for server to initialize..."
-sleep 3
+echo "Waiting for server to fully initialize..."
+sleep 5
 if "$BT_SERVER" status >/dev/null 2>&1; then
   echo "✓ Server is running"
 else
@@ -155,13 +155,15 @@ echo ""
 echo "=== Step 2: Deploying strategy ==="
 echo "Copying source files and building..."
 "$DEPLOY" --name "$STRATEGY_NAME"
-echo "Waiting for build to complete..."
-sleep 2
+echo "Waiting for build to complete and server to see new DLL..."
+sleep 5
 echo "✓ Strategy deployed and built"
 echo ""
 
 # Step 2.5: Recheck strategy DLLs (reload after deploy)
 echo "=== Step 2.5: Rechecking strategy DLLs ==="
+echo "Waiting before recheck to ensure server is ready..."
+sleep 2
 "$BT_INSTANCE" recheck
 echo "Waiting for DLL reload to complete..."
 sleep 3
