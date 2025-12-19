@@ -50,8 +50,8 @@ void etf_arb::DefineStrategyCommands() {
 void etf_arb::RegisterForStrategyEvents(
     StrategyEventRegister*, DateType) {
 
-    uso_ = instrument_set().GetInstrument("USO");
-    cl_  = instrument_set().GetInstrument("CL");
+    uso_ = InstrumentSet().GetInstrument("USO");
+    cl_  = InstrumentSet().GetInstrument("CL");
 }
 
 void etf_arb::OnResetStrategyState() {
