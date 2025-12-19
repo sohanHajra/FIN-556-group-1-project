@@ -27,24 +27,32 @@ venue_arb::~venue_arb() {}
 
 void venue_arb::DefineStrategyParams()
 {
+    // Minimum price difference between venues required to trigger an arbitrage trade.
+    // The strategy only trades when the spread between NASDAQ and IEX exceeds this threshold.
     params().CreateParam(CreateStrategyParamArgs(
         "arb_threshold",
         STRATEGY_PARAM_TYPE_RUNTIME,
         VALUE_TYPE_DOUBLE,
         arb_threshold_));
 
+    // Price adjustment for limit orders to improve fill probability.
+    // Positive values make orders more aggressive (buy below ask, sell above bid).
+    // Higher values increase fill probability but worsen execution price.
     params().CreateParam(CreateStrategyParamArgs(
         "aggressiveness",
         STRATEGY_PARAM_TYPE_RUNTIME,
         VALUE_TYPE_DOUBLE,
         aggressiveness_));
 
+    // Target position size when an arbitrage opportunity is detected.
+    // The strategy will trade to reach this position (+position_size for long, -position_size for short).
     params().CreateParam(CreateStrategyParamArgs(
         "position_size",
         STRATEGY_PARAM_TYPE_RUNTIME,
         VALUE_TYPE_INT,
         position_size_));
 
+    // Enable debug output for strategy diagnostics -- not implemented
     params().CreateParam(CreateStrategyParamArgs(
         "debug",
         STRATEGY_PARAM_TYPE_RUNTIME,
