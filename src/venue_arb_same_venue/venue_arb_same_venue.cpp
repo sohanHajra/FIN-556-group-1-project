@@ -134,11 +134,11 @@ void venue_arb::EvaluateArb(const Instrument* inst)
     else if (n.bid >= i.ask + arb_threshold_) {
         // Buy on IEX (cheaper), sell on NASDAQ (more expensive)
         // Going short, so sell on NASDAQ where we get the higher price
-        desired_position = position_size_;
-        venue = MARKET_CENTER_ID_IEX;
+        // desired_position = position_size_;
+        // venue = MARKET_CENTER_ID_IEX;
 
-        // desired_position = -position_size__;
-        // venue = MARKET_CENTER_ID_NASDAQ;
+        desired_position = -position_size__;
+        venue = MARKET_CENTER_ID_NASDAQ;
     }
 
     if (desired_position != 0) {
