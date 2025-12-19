@@ -162,11 +162,9 @@ echo ""
 
 # Step 2.5: Recheck strategy DLLs (reload after deploy)
 echo "=== Step 2.5: Rechecking strategy DLLs ==="
-echo "Reloading strategy libraries..."
 "$BT_INSTANCE" recheck
 echo "Waiting for DLL reload to complete..."
 sleep 3
-echo "✓ Strategy DLLs reloaded"
 echo ""
 
 # Step 2.6: Terminate all instances
