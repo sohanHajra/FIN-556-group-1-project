@@ -24,16 +24,6 @@ source "$CONFIG_FILE"
 # Defaults from config
 # ================================
 STRATEGY_NAME="${BT_STRATEGY_TYPE:-}"
-INSTANCE="${BT_INSTANCE_NAME:-}"
-START="${BT_BACKTEST_START:-}"
-END="${BT_BACKTEST_END:-}"
-MODE="${BT_BACKTEST_MODE:-0}"
-
-GROUP="${BT_GROUP:-UIUC}"
-ACCOUNT="${BT_ACCOUNT:-}"
-USERNAME="${BT_USER:-}"
-CASH="${BT_CASH:-9900000}"
-SYMBOLS="${BT_SYMBOLS:-}"
 
 # ================================
 # Script dependencies
@@ -41,7 +31,6 @@ SYMBOLS="${BT_SYMBOLS:-}"
 BT_SERVER="$SCRIPT_DIR/bt_server.sh"
 DEPLOY="$SCRIPT_DIR/deploy_strategy.sh"
 RUN_STRATEGY="$SCRIPT_DIR/run_strategy.sh"
-BT_INSTANCE="$SCRIPT_DIR/bt_instance.sh"
 SS_LOGS="$SCRIPT_DIR/ss_logs.sh"
 SS_LOG_MANAGER="$SCRIPT_DIR/ss_log_manager.sh"
 
@@ -51,26 +40,25 @@ usage() {
 Usage:
   $0 [options]
 
-Convenience script that:
-  1. Stops and restarts the backtest server
-  2. Deploys the strategy (builds and copies)
-  3. Runs a backtest
-  4. Shows backtest server logs
+Simple convenience script that:
+  1. (Optional) Cleans backtest server logs
+  2. Stops and restarts the backtest server
+  3. Deploys the strategy (builds and copies)
+  4. Terminates all existing instances
+  5. Runs the full pipeline (recheck → create → backtest) via run_strategy.sh
+  6. (Optional) Shows backtest server logs
 
-Options (override config):
+Options:
   --strategy STRATEGY_NAME    Strategy name (required)
-  --instance INSTANCE_NAME     Instance name (from config or required)
-  --start YYYY-MM-DD          Backtest start date (from config or required)
-  --end YYYY-MM-DD            Backtest end date (from config or required)
-  --mode 0|1                  Backtest mode (0=quotes+trades, 1=trades only)
   --clean                     Clean backtest server logs before starting
   --no-logs                   Don't show logs at the end
 
-Note: Instance creation parameters (group, account, user, cash, symbols) are read from bt_config.sh
+All other parameters (instance, start, end, mode, etc.) are read from bt_config.sh
+and can be overridden by passing them to run_strategy.sh run.
 
 Examples:
-  $0 --strategy venue_arb --instance MyTest --start 2023-09-05 --end 2023-09-05
-  $0 --strategy venue_arb  # uses config defaults for instance/start/end
+  $0 --strategy venue_arb
+  $0 --strategy venue_arb --clean
 EOF
 }
 
@@ -79,18 +67,19 @@ EOF
 # ================================
 SHOW_LOGS=1
 CLEAN_LOGS=0
+RUN_STRATEGY_ARGS=()
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --strategy) STRATEGY_NAME="$2"; shift 2;;
-    --instance) INSTANCE="$2"; shift 2;;
-    --start) START="$2"; shift 2;;
-    --end) END="$2"; shift 2;;
-    --mode) MODE="$2"; shift 2;;
     --clean) CLEAN_LOGS=1; shift;;
     --no-logs) SHOW_LOGS=0; shift;;
     -h|--help) usage; exit 0;;
-    *) echo "Unknown arg: $1"; usage; exit 1;;
+    *) 
+      # Pass through any other args to run_strategy.sh
+      RUN_STRATEGY_ARGS+=("$1")
+      shift
+      ;;
   esac
 done
 
@@ -103,48 +92,6 @@ done
   exit 1
 }
 
-[[ -n "$INSTANCE" ]] || {
-  echo "❌ --instance is required (set in bt_config.sh or pass --instance)"
-  usage
-  exit 1
-}
-
-[[ -n "$START" ]] || {
-  echo "❌ --start is required (set in bt_config.sh or pass --start)"
-  usage
-  exit 1
-}
-
-[[ -n "$END" ]] || {
-  echo "❌ --end is required (set in bt_config.sh or pass --end)"
-  usage
-  exit 1
-}
-
-[[ -n "$GROUP" ]] || {
-  echo "❌ --group is required (set in bt_config.sh)"
-  usage
-  exit 1
-}
-
-[[ -n "$ACCOUNT" ]] || {
-  echo "❌ --account is required (set in bt_config.sh)"
-  usage
-  exit 1
-}
-
-[[ -n "$USERNAME" ]] || {
-  echo "❌ --user is required (set in bt_config.sh)"
-  usage
-  exit 1
-}
-
-[[ -n "$SYMBOLS" ]] || {
-  echo "❌ --symbols is required (set in bt_config.sh)"
-  usage
-  exit 1
-}
-
 # ================================
 # Main workflow
 # ================================
@@ -152,126 +99,51 @@ echo "=========================================="
 echo "( O_O ) Deploy and Test Workflow"
 echo "=========================================="
 echo "Strategy: $STRATEGY_NAME"
-echo "Instance: $INSTANCE"
-echo "Date range: $START to $END"
 echo ""
 
 # Step 0: Clean logs (if requested)
 if [[ "$CLEAN_LOGS" -eq 1 ]]; then
   echo "=== Step 0: Cleaning backtest server logs ==="
   "$SS_LOG_MANAGER" clean bt
-  echo "Logs cleaned."
+  echo "✓ Logs cleaned"
   echo ""
-  sleep 2
 fi
 
 # Step 1: Restart server
 echo "=== Step 1: Restarting backtest server ==="
-echo "Stopping server (if running)..."
 "$BT_SERVER" stop || true
-echo "Waiting for server to fully stop..."
-sleep 5
-echo "Starting backtest server..."
+sleep 3
 "$BT_SERVER" start
-echo "Waiting for server to fully initialize..."
-sleep 5
-if "$BT_SERVER" status >/dev/null 2>&1; then
-  echo "✓ Server is running"
-else
-  echo "✗ Server failed to start!"
-  exit 1
-fi
+sleep 3
+echo "✓ Server restarted"
 echo ""
 
 # Step 2: Deploy strategy
 echo "=== Step 2: Deploying strategy ==="
-echo "Copying source files and building..."
 "$DEPLOY" --name "$STRATEGY_NAME"
-echo "Waiting for build to complete and server to see new DLL..."
-sleep 5
+sleep 2
 echo "✓ Strategy deployed and built"
 echo ""
 
-# Step 2.5: Recheck strategy DLLs (reload after deploy)
-echo "=== Step 2.5: Rechecking strategy DLLs ==="
-echo "Waiting before recheck to ensure server is ready..."
-sleep 2
-echo "(Note: 'Exiting due to network disconnect' is normal - CLI tool disconnects after sending command)"
-"$BT_INSTANCE" recheck || {
-  echo "⚠ Recheck command completed (disconnect message is expected)"
-}
-echo "Waiting for DLL reload to complete..."
-sleep 3
-echo "✓ Strategy DLLs reloaded (check server logs to confirm)"
-echo ""
-
-# Step 2.6: Terminate all instances
-echo "=== Step 2.6: Terminating all existing instances ==="
-echo "Terminating all strategy instances..."
+# Step 3: Terminate all instances
+echo "=== Step 3: Terminating all existing instances ==="
 "$RUN_STRATEGY" killall || true
-echo "Waiting for server to stabilize after termination..."
-sleep 5
-
-# Verify server is still running
-echo "Verifying server is still running..."
-if ! "$BT_SERVER" status >/dev/null 2>&1; then
-  echo "⚠ Server disconnected, restarting..."
-  "$BT_SERVER" start
-  echo "Waiting for server to restart..."
-  sleep 5
-  if "$BT_SERVER" status >/dev/null 2>&1; then
-    echo "✓ Server restarted successfully"
-  else
-    echo "✗ Server failed to restart!"
-    exit 1
-  fi
-else
-  echo "✓ Server is still running"
-fi
+sleep 3
+echo "✓ All instances terminated"
 echo ""
 
-# Step 3: Create instance (needed after killall)
-echo "=== Step 3: Creating strategy instance ==="
-echo "Creating instance: $INSTANCE"
-echo "Strategy: $STRATEGY_NAME, Account: $ACCOUNT, Symbols: $SYMBOLS"
-"$BT_INSTANCE" create \
-  --instance "$INSTANCE" \
-  --strategy "$STRATEGY_NAME" \
-  --group "$GROUP" \
-  --account "$ACCOUNT" \
-  --user "$USERNAME" \
-  --cash "$CASH" \
-  --symbols "$SYMBOLS"
-echo "Waiting for instance to be created..."
-sleep 3
-echo "✓ Instance created"
-echo ""
-
-# Step 4: Run backtest
-echo "=== Step 4: Running backtest ==="
-echo "Starting backtest for instance: $INSTANCE"
-echo "Date range: $START to $END"
-"$RUN_STRATEGY" backtest \
-  --instance "$INSTANCE" \
-  --start "$START" \
-  --end "$END" \
-  --mode "$MODE"
-echo "Waiting for backtest to initialize..."
-sleep 3
-echo "✓ Backtest command sent"
+# Step 4: Run full pipeline (recheck → create → backtest)
+echo "=== Step 4: Running full pipeline ==="
+"$RUN_STRATEGY" run "${RUN_STRATEGY_ARGS[@]}"
 echo ""
 
 # Step 5: Show logs
 if [[ "$SHOW_LOGS" -eq 1 ]]; then
   echo "=== Step 5: Showing backtest server logs ==="
-  echo "Waiting before showing logs..."
   sleep 2
   echo "(Press 'q' to quit the log viewer)"
   echo ""
   "$SS_LOGS" bt
-else
-  echo "=== Step 5: Skipping logs (use --no-logs to suppress this message) ==="
-  echo "To view logs later: ./scripts/ss_logs.sh bt"
 fi
 
 echo ""
