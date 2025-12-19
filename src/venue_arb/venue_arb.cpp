@@ -124,18 +124,26 @@ void venue_arb::EvaluateArb(const Instrument* inst)
     //     << std::endl;
 
     int desired_position = 0;
+    MarketCenterID venue = MARKET_CENTER_ID_NASDAQ;
 
     if (i.bid >= n.ask + arb_threshold_) {
+        // Buy on NASDAQ (cheaper), sell on IEX (more expensive)
         desired_position = position_size_;
+        venue = MARKET_CENTER_ID_NASDAQ;
     }
     else if (n.bid >= i.ask + arb_threshold_) {
+        // Buy on IEX (cheaper), sell on NASDAQ (more expensive)
+        // Going short, so sell on NASDAQ where we get the higher price
         desired_position = -position_size_;
+        venue = MARKET_CENTER_ID_NASDAQ;
     }
 
-    AdjustPortfolio(inst, desired_position);
+    if (desired_position != 0) {
+        AdjustPortfolio(inst, desired_position, venue);
+    }
 }
 
-void venue_arb::AdjustPortfolio(const Instrument* inst, int desired_position)
+void venue_arb::AdjustPortfolio(const Instrument* inst, int desired_position, MarketCenterID venue)
 {
 
     int current_position = portfolio().position(inst);
@@ -154,7 +162,7 @@ void venue_arb::AdjustPortfolio(const Instrument* inst, int desired_position)
     if (orders().num_working_orders(inst) > 0) {
         return;
     }
-    SendOrder(inst, trade_size, MARKET_CENTER_ID_NASDAQ);
+    SendOrder(inst, trade_size, venue);
 }
 
 void venue_arb::SendOrder(const Instrument* inst,
