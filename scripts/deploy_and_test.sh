@@ -175,15 +175,8 @@ sleep 8
 echo "✓ All instances terminated"
 echo ""
 
-# Step 4: Recheck strategy DLLs
-echo "=== Step 4: Rechecking strategy DLLs ==="
-"$BT_INSTANCE" recheck
-sleep 2
-echo "✓ Strategy DLLs reloaded"
-echo ""
-
-# Step 5: Create instance
-echo "=== Step 5: Creating strategy instance ==="
+# Step 4: Create instance
+echo "=== Step 4: Creating strategy instance ==="
 "$BT_INSTANCE" create \
   --instance "$INSTANCE" \
   --strategy "$STRATEGY_NAME" \
@@ -194,6 +187,13 @@ echo "=== Step 5: Creating strategy instance ==="
   --symbols "$SYMBOLS"
 sleep 2
 echo "✓ Instance created"
+echo ""
+
+# Step 5: Recheck strategy DLLs (after instance creation)
+echo "=== Step 5: Rechecking strategy DLLs ==="
+"$BT_INSTANCE" recheck
+sleep 2
+echo "✓ Strategy DLLs reloaded"
 echo ""
 
 # Step 6: Run backtest
