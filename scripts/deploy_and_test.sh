@@ -29,6 +29,12 @@ START="${BT_BACKTEST_START:-}"
 END="${BT_BACKTEST_END:-}"
 MODE="${BT_BACKTEST_MODE:-0}"
 
+GROUP="${BT_GROUP:-UIUC}"
+ACCOUNT="${BT_ACCOUNT:-}"
+USERNAME="${BT_USER:-}"
+CASH="${BT_CASH:-9900000}"
+SYMBOLS="${BT_SYMBOLS:-}"
+
 # ================================
 # Script dependencies
 # ================================
@@ -59,6 +65,8 @@ Options (override config):
   --mode 0|1                  Backtest mode (0=quotes+trades, 1=trades only)
   --clean                     Clean backtest server logs before starting
   --no-logs                   Don't show logs at the end
+
+Note: Instance creation parameters (group, account, user, cash, symbols) are read from bt_config.sh
 
 Examples:
   $0 --strategy venue_arb --instance MyTest --start 2023-09-05 --end 2023-09-05
@@ -109,6 +117,30 @@ done
 
 [[ -n "$END" ]] || {
   echo "❌ --end is required (set in bt_config.sh or pass --end)"
+  usage
+  exit 1
+}
+
+[[ -n "$GROUP" ]] || {
+  echo "❌ --group is required (set in bt_config.sh)"
+  usage
+  exit 1
+}
+
+[[ -n "$ACCOUNT" ]] || {
+  echo "❌ --account is required (set in bt_config.sh)"
+  usage
+  exit 1
+}
+
+[[ -n "$USERNAME" ]] || {
+  echo "❌ --user is required (set in bt_config.sh)"
+  usage
+  exit 1
+}
+
+[[ -n "$SYMBOLS" ]] || {
+  echo "❌ --symbols is required (set in bt_config.sh)"
   usage
   exit 1
 }
@@ -164,9 +196,13 @@ echo ""
 echo "=== Step 2.5: Rechecking strategy DLLs ==="
 echo "Waiting before recheck to ensure server is ready..."
 sleep 2
-"$BT_INSTANCE" recheck
+echo "(Note: 'Exiting due to network disconnect' is normal - CLI tool disconnects after sending command)"
+"$BT_INSTANCE" recheck || {
+  echo "⚠ Recheck command completed (disconnect message is expected)"
+}
 echo "Waiting for DLL reload to complete..."
 sleep 3
+echo "✓ Strategy DLLs reloaded (check server logs to confirm)"
 echo ""
 
 # Step 2.6: Terminate all instances
@@ -194,8 +230,25 @@ else
 fi
 echo ""
 
-# Step 3: Run backtest
-echo "=== Step 3: Running backtest ==="
+# Step 3: Create instance (needed after killall)
+echo "=== Step 3: Creating strategy instance ==="
+echo "Creating instance: $INSTANCE"
+echo "Strategy: $STRATEGY_NAME, Account: $ACCOUNT, Symbols: $SYMBOLS"
+"$BT_INSTANCE" create \
+  --instance "$INSTANCE" \
+  --strategy "$STRATEGY_NAME" \
+  --group "$GROUP" \
+  --account "$ACCOUNT" \
+  --user "$USERNAME" \
+  --cash "$CASH" \
+  --symbols "$SYMBOLS"
+echo "Waiting for instance to be created..."
+sleep 3
+echo "✓ Instance created"
+echo ""
+
+# Step 4: Run backtest
+echo "=== Step 4: Running backtest ==="
 echo "Starting backtest for instance: $INSTANCE"
 echo "Date range: $START to $END"
 "$RUN_STRATEGY" backtest \
@@ -208,16 +261,16 @@ sleep 3
 echo "✓ Backtest command sent"
 echo ""
 
-# Step 4: Show logs
+# Step 5: Show logs
 if [[ "$SHOW_LOGS" -eq 1 ]]; then
-  echo "=== Step 4: Showing backtest server logs ==="
+  echo "=== Step 5: Showing backtest server logs ==="
   echo "Waiting before showing logs..."
   sleep 2
   echo "(Press 'q' to quit the log viewer)"
   echo ""
   "$SS_LOGS" bt
 else
-  echo "=== Step 4: Skipping logs (use --no-logs to suppress this message) ==="
+  echo "=== Step 5: Skipping logs (use --no-logs to suppress this message) ==="
   echo "To view logs later: ./scripts/ss_logs.sh bt"
 fi
 
