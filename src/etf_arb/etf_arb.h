@@ -15,13 +15,16 @@
 #include <MarketModels/Instrument.h>
 #include <boost/unordered_map.hpp>
 #include <cmath>
+#include <cstring>
 
 using namespace RCM::StrategyStudio;
 using namespace RCM::StrategyStudio::MarketModels;
 
 struct VenueQuote {
-    double bid = NAN;
-    double ask = NAN;
+    double bid;
+    double ask;
+
+    VenueQuote() : bid(NAN), ask(NAN) {}
 
     bool valid() const {
         return std::isfinite(bid) && std::isfinite(ask);
@@ -32,25 +35,26 @@ struct VenueQuote {
     }
 };
 
-class etf_arb : public Strategy {
+class etf_arb : public RCM::StrategyStudio::Strategy {
 public:
     etf_arb(StrategyID strategyID,
             const std::string& strategyName,
             const std::string& groupName);
 
-    ~etf_arb();
+    virtual ~etf_arb();
 
-public:
     virtual void OnQuote(const QuoteEventMsg& msg) override;
     virtual void OnOrderUpdate(const OrderUpdateEventMsg& msg) override {}
 
-    void OnResetStrategyState() override;
-    void OnStrategyCommand(const StrategyCommandEventMsg& msg) override;
-    void OnParamChanged(StrategyParam& param) override;
+    virtual void OnResetStrategyState() override;
+    virtual void OnStrategyCommand(const StrategyCommandEventMsg& msg) override;
+    virtual void OnParamChanged(StrategyParam& param) override;
 
 private:
-    virtual void RegisterForStrategyEvents(StrategyEventRegister* eventRegister,
-                                           DateType currDate) override;
+    virtual void RegisterForStrategyEvents(
+        StrategyEventRegister* eventRegister,
+        DateType currDate) override;
+
     virtual void DefineStrategyParams() override;
     virtual void DefineStrategyCommands() override;
 
@@ -82,8 +86,9 @@ extern "C" {
                                                 unsigned strategyID,
                                                 const char* strategyName,
                                                 const char* groupName) {
-        if (strcmp(strategyType, GetType()) == 0)
+        if (std::strcmp(strategyType, GetType()) == 0) {
             return new etf_arb(strategyID, strategyName, groupName);
+        }
         return nullptr;
     }
 

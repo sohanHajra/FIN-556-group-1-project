@@ -47,16 +47,11 @@ void etf_arb::DefineStrategyCommands() {
     commands().AddCommand(StrategyCommand(1, "Cancel All Orders"));
 }
 
-void etf_arb::RegisterForStrategyEvents(StrategyEventRegister* eventRegister,
-                                        DateType currDate) {
-    instrument_manager()->TryGetInstrument("USO", &uso_);
-    instrument_manager()->TryGetInstrument("CL", &cl_);
+void etf_arb::RegisterForStrategyEvents(
+    StrategyEventRegister*, DateType) {
 
-    if (uso_)
-        eventRegister->RegisterForInstrument(uso_);
-
-    if (cl_)
-        eventRegister->RegisterForInstrument(cl_);
+    uso_ = instruments().GetInstrument("USO");
+    cl_  = instruments().GetInstrument("CL");
 }
 
 void etf_arb::OnResetStrategyState() {
@@ -65,17 +60,17 @@ void etf_arb::OnResetStrategyState() {
 }
 
 void etf_arb::OnQuote(const QuoteEventMsg& msg) {
-    const Instrument* inst = &msg.instrument();
+    const Instrument& inst = msg.instrument();
     MarketCenterID mc = msg.market_center_id();
 
-    if (inst == uso_) {
+    if (&inst == uso_) {
         VenueQuote& q = uso_quotes_[mc];
         if (msg.quote().bid_side().IsValid())
             q.bid = msg.quote().bid();
         if (msg.quote().ask_side().IsValid())
             q.ask = msg.quote().ask();
     }
-    else if (inst == cl_) {
+    else if (&inst == cl_) {
         if (msg.quote().bid_side().IsValid())
             cl_quote_.bid = msg.quote().bid();
         if (msg.quote().ask_side().IsValid())
@@ -95,7 +90,9 @@ void etf_arb::EvaluateArb() {
     double cl_fair = cl_quote_.mid() * hedge_ratio_;
     int desired_position = 0;
 
-    for (auto& [venue, uso_q] : uso_quotes_) {
+    for (auto& it : uso_quotes_) {
+        VenueQuote& uso_q = it.second;
+
         if (!uso_q.valid())
             continue;
 
@@ -135,7 +132,7 @@ void etf_arb::SendOrder(int trade_size, MarketCenterID venue) {
 
     OrderParams params(
         *uso_,
-        abs(trade_size),
+        std::abs(trade_size),
         price,
         venue,
         trade_size > 0 ? ORDER_SIDE_BUY : ORDER_SIDE_SELL,
