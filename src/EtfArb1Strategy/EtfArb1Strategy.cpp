@@ -40,8 +40,10 @@ void EtfArb1Strategy::OnParamChanged(StrategyParam& param) {
         if (!param.Get(&position_size_)) return;
     } else if (param.param_name() == "aggressiveness") {
         if (!param.Get(&aggressiveness_)) return;
+    } else if (param.param_name() == "skew") { //change: added handler for runtime skew updates
+        if (!param.Get(&inventory_skew_)) return;
     }
-    
+
 }
 
 void EtfArb1Strategy::OnResetStrategyState() {
@@ -130,6 +132,13 @@ void EtfArb1Strategy::EvaluateArb() {
 
     if (valid_components != basket_weights_.size() || fair_value <= 0) return;
 
+    //inventory skew
+    // if long, then skew is +, fair_value drops, so we sell sooner
+    // if short, then skew is -, fair_value increases, so we buy sooner
+    int current_position = portfolio().position(etf_instrument_);
+    double skew = current_position * inventory_skew_;
+    double skewed_fair_value = fair_value - skew;
+
     int desired_position = 0;
     MarketCenterID best_venue = MARKET_CENTER_ID_IEX;
     double best_execution_price = 0.0;
@@ -141,7 +150,7 @@ void EtfArb1Strategy::EvaluateArb() {
         MarketCenterID venue = item.first;
         const VenuePrice& q = item.second;
 
-        if (q.valid_bid && q.bid > (fair_value + entry_threshold_)) {
+        if (q.valid_bid && q.bid > (skewed_fair_value + entry_threshold_)) {
             if (q.bid > highest_bid) {
                 highest_bid = q.bid;
                 best_venue = venue;
@@ -149,7 +158,7 @@ void EtfArb1Strategy::EvaluateArb() {
                 best_execution_price = q.bid;
             }
         }
-        else if (q.valid_ask && q.ask < (fair_value - entry_threshold_)) {
+        else if (q.valid_ask && q.ask < (skewed_fair_value - entry_threshold_)) {
             if (q.ask < lowest_ask) {
                 lowest_ask = q.ask;
                 best_venue = venue;
@@ -174,9 +183,16 @@ void EtfArb1Strategy::AdjustPosition(int desired_position, MarketCenterID venue,
 
     OrderSide side = (trade_size > 0) ? ORDER_SIDE_BUY : ORDER_SIDE_SELL;
     
+    //dynamic aggressiveness
+    double dynamic_agg = aggressiveness_;
+
+    if (abs(current_position) > 300) {
+        dynamic_agg *= 2.0;
+    }
+    
     double limit_price = (side == ORDER_SIDE_BUY) 
-                         ? market_price + aggressiveness_ 
-                         : market_price - aggressiveness_;
+                         ? market_price + dynamic_agg 
+                         : market_price - dynamic_agg;
 
     OrderParams op(
         *etf_instrument_,
