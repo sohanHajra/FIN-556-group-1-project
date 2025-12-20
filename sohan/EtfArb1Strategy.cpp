@@ -18,7 +18,7 @@ EtfArb1Strategy::EtfArb1Strategy(StrategyID strategyID, const std::string& strat
       basket_symbols_param_("CL"),             
       entry_threshold_(0.05),                  
       position_size_(100),
-      aggressiveness_(0.01) {
+      aggressiveness_(0.02) {
 
     params().CreateParam(CreateStrategyParam("etf", CommandUserType::STRATEGY_PARAM, etf_symbol_param_));
     params().CreateParam(CreateStrategyParam("basket", CommandUserType::STRATEGY_PARAM, basket_symbols_param_));
