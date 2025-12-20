@@ -364,13 +364,150 @@ before backtesting.
 
 ---
 
-### Backtest server won’t start
+### Backtest server won't start
 
 Check logs:
 
 ```bash
 ./scripts/bt_server.sh logs
 ```
+
+---
+
+### Strategy not loading or not found
+
+If your strategy doesn't appear in the list or fails to load, follow these steps:
+
+**1. Restart the backtest server** (forces reload of all `.so` files):
+
+```bash
+./scripts/bt_server.sh restart
+```
+
+**2. Recheck strategy DLLs** (tells StrategyStudio to scan for new strategies):
+
+```bash
+./scripts/bt_instance.sh recheck
+```
+
+**3. Verify strategy type matches source code:**
+
+The strategy type you use in scripts/config must **exactly match** the string returned by `GetType()` in your C++ header file.
+
+Check your source file (e.g., `src/venue_arb/venue_arb.h`):
+```cpp
+extern "C" {
+    _STRATEGY_EXPORTS const char* GetType() {
+        return "venue_arb";  // <-- This string must match
+    }
+}
+```
+
+Then verify it matches:
+- `scripts/bt_config.sh`: `BT_STRATEGY_TYPE="venue_arb"`
+- Command-line flags: `--strategy_type venue_arb`
+- Instance creation: `--strategy venue_arb`
+
+**4. Ensure strategy was deployed and built:**
+
+```bash
+# Deploy and rebuild
+./scripts/deploy_strategy.sh --name venue_arb
+
+# Verify .so file exists
+ls $HOME/StrategyStudio/Backtesting/Strategies/*.so
+```
+
+**5. Check for build errors:**
+
+Look for compilation errors in the deploy output. Common issues:
+- Missing includes
+- Linker errors
+- Syntax errors in C++ code
+
+**6. Check server startup logs for strategy registration:**
+
+When the server starts, it logs which strategies are registered. Check the logs to verify your strategy was loaded:
+
+```bash
+# View recent server logs
+./scripts/bt_server.sh logs | tail -50
+
+# Search for your strategy name
+./scripts/bt_server.sh logs | grep -i "venue_arb"
+
+# Look for registration messages
+./scripts/bt_server.sh logs | grep -i "register\|load\|strategy"
+```
+
+You should see messages indicating your strategy was successfully registered. If not, the strategy wasn't loaded.
+
+**7. Verify strategy version matches source code:**
+
+The version returned by `GetReleaseVersion()` in your header file must match what StrategyStudio sees. Check your source code:
+
+```cpp
+// In src/venue_arb/venue_arb.h
+extern "C" {
+    _STRATEGY_EXPORTS const char* GetReleaseVersion() {
+        return Strategy::release_version();  // <-- Check what this returns
+    }
+}
+```
+
+After deploying, check the server logs for the version string when the strategy loads. The version should appear in the registration logs. You can also check by looking at the `.so` file's metadata or by examining the server logs when the strategy is first loaded.
+
+**8. Full reload sequence** (if strategy still not found):
+
+```bash
+# First, terminate all running instances (they may be using old .so files)
+./scripts/run_strategy.sh killall
+# Or: ./scripts/bt_instance.sh terminate --all
+
+# Stop server
+./scripts/bt_server.sh stop
+
+# Deploy and rebuild
+./scripts/deploy_strategy.sh --name venue_arb
+
+# Restart server
+./scripts/bt_server.sh start
+
+# Wait a moment for server to fully start
+sleep 3
+
+# Recheck strategies (tells StrategyStudio to scan for new .so files)
+./scripts/bt_instance.sh recheck
+
+# Check server logs to verify strategy was registered
+./scripts/bt_server.sh logs | grep -i "venue_arb"
+
+# Note: 'list' shows running instances, not available strategies
+# To see if strategy is available, check the server logs or try creating an instance
+```
+
+**9. Check server logs for errors:**
+
+```bash
+# Look for errors
+./scripts/bt_server.sh logs | grep -i error
+
+# Look for your strategy specifically
+./scripts/bt_server.sh logs | grep -i "venue_arb"
+
+# Check for loading/registration issues
+./scripts/bt_server.sh logs | grep -i "fail\|error\|cannot\|unable"
+```
+
+**Common mistakes:**
+- Strategy type mismatch between source code and config
+- Forgot to deploy after code changes
+- Build failed silently (check deploy output)
+- Server not restarted after deploying new strategy
+- `.so` file not copied to correct location
+- Running instances still using old `.so` files (use `killall` first)
+- Version mismatch between source code and loaded strategy
+- Strategy not appearing in server startup logs (means it wasn't registered)
 
 ---
 
