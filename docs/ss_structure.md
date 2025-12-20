@@ -36,12 +36,6 @@ $HOME/ss/bt/
 └── backtesting-results/         # CRA files (backtest results)
 ```
 
-### Compiled Strategy Libraries
-```
-$HOME/StrategyStudio/Backtesting/Strategies/
-└── venue_arb.so                 # Copied here by 'make copy_strategy'
-```
-
 ## Workflow
 
 ### Initial Setup (One-Time)

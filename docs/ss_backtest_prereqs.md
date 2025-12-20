@@ -32,15 +32,6 @@ Edit `$HOME/ss/bt/preferred_feeds.csv` to include all market centers (venues) yo
 - `NASDAQ` - For NASDAQ data
 - `IEX` - For IEX data (if using cross-venue arbitrage)
 
-**Format:**
-The file should contain market center identifiers, one per line or in CSV format as required by Strategy Studio.
-
-**Example:**
-```csv
-NASDAQ
-IEX
-```
-
 ### 3. Strategy Setup (Automated)
 
 **You do NOT need to manually copy strategies anymore.** Use the automation scripts:
