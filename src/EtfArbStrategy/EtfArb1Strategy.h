@@ -16,7 +16,7 @@ using namespace RCM::StrategyStudio;
 using namespace RCM::StrategyStudio::MarketModels;
 using namespace RCM::StrategyStudio::Utilities;
 
-struct VenuePrice {
+struct VenuePrice { // updated the struct
     double bid = 0.0;
     double ask = 999999.0;
     bool valid_bid = false;
