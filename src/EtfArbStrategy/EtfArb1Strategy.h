@@ -14,6 +14,7 @@
 
 using namespace RCM::StrategyStudio;
 using namespace RCM::StrategyStudio::MarketModels;
+using namespace RCM::StrategyStudio::Utilities;
 
 struct VenuePrice {
     double bid = 0.0;
