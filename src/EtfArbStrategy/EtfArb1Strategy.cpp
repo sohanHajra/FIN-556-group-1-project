@@ -65,7 +65,7 @@ void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegi
             etf_instrument_ = inst;
             // No need to manually register if passed via command line, 
             // but if your API version requires it, you can uncomment:
-            eventRegister->RegisterForInstrument(inst);
+            // eventRegister->RegisterForInstrument(inst);
         }
         
         // Check if this is in our Basket/Proxy list
