@@ -2,8 +2,8 @@
 
 #include <Strategy.h>
 #include <MarketModels/Instrument.h>
-#include <OrderParams.h>      // Match file list
-#include <Order.h>            // Match file list
+#include <OrderParams.h>     
+#include <Order.h>           
 #include <BarEventMsg.h>      
 #include <QuoteEventMsg.h>   
 #include <map>
