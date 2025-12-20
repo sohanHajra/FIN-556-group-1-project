@@ -108,7 +108,7 @@ Each message type has its own fixed-length structure, allowing for efficient bin
 
 ## NASDAQ Data Processing Pipeline
 
-Pipeline converts NASDAQ TotalView-ITCH data from compressed PCAP files to Strategy Studio tick and trade files. It handles L3 order book messages, maintains state, and outputs L2 depth-by-price and trade data.
+Our pipeline converts NASDAQ TotalView-ITCH data from compressed PCAP files to Strategy Studio tick and trade files. It handles L3 order book messages, maintains state, and outputs L2 depth-by-price and trade data.
 
 Derivations for message format obtained from:
 
