@@ -183,9 +183,16 @@ void EtfArb1Strategy::AdjustPosition(int desired_position, MarketCenterID venue,
 
     OrderSide side = (trade_size > 0) ? ORDER_SIDE_BUY : ORDER_SIDE_SELL;
     
+    //dynamic aggressiveness
+    double dynamic_agg = aggressiveness_;
+
+    if (abs(current_position) > 300) {
+        dynamic_agg *= 2.0;
+    }
+    
     double limit_price = (side == ORDER_SIDE_BUY) 
-                         ? market_price + aggressiveness_ 
-                         : market_price - aggressiveness_;
+                         ? market_price + dynamic_agg 
+                         : market_price - dynamic_agg;
 
     OrderParams op(
         *etf_instrument_,
