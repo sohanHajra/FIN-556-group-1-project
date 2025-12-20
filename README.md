@@ -328,6 +328,108 @@ The `MessageParser` supports selective message type filtering at the parser leve
 
 ---
 
+## Phase 2: Strategy Studio Integration and Automation
+
+With processed market data in Strategy Studio-compatible format, the next phase involves deploying and running trading strategies on the Strategy Studio platform. To streamline this process and avoid manual, error-prone steps, we developed a suite of automation scripts that handle strategy deployment, backtest execution, and log management.
+
+### Design Philosophy
+
+The automation system follows a clear separation of concerns:
+
+- **`src/` directory**: Source of truth for all strategy C++ code
+- **Strategy Studio directories**: Treated as build/deploy targets only
+- **Automation scripts**: Handle copying, building, and running strategies
+
+This approach ensures that strategy code remains version-controlled in the repository, while Strategy Studio directories are treated as temporary build artifacts. This prevents disk quota issues and makes the development workflow repeatable and reliable.
+
+### Key Automation Scripts
+
+The `scripts/` folder contains several automation tools:
+
+**Strategy Deployment:**
+- `clone_strategy.sh`: One-time setup to create a new strategy directory from a template
+- `deploy_strategy.sh`: Copies code from `src/` to Strategy Studio, builds the `.so` library, and makes it available to the backtest server
+- `build_copy_strategy.sh`: Builds and copies strategy files
+
+**Backtest Management:**
+- `bt_server.sh`: Manages the Strategy Studio backtest server (start, stop, status, logs)
+- `bt_instance.sh`: Creates, manages, and controls backtest instances (create, backtest, stop, pause, terminate)
+- `bt_config.sh`: Centralized configuration for backtest parameters
+
+**Convenience Wrappers:**
+- `run_strategy.sh`: High-level wrapper that loads configuration and provides simplified commands for common workflows
+- `deploy_and_test.sh`: Hint at what commands need to be run to deploy, build, and run a backtest.
+
+**Log Management:**
+- `ss_logs.sh`: Quick access to Strategy Studio logs (backtest server, errors, instance logs)
+- `ss_log_manager.sh`: Disk quota management tools (summary, cleanup, purge old logs)
+
+### Typical Development Workflow
+
+The daily development cycle follows this pattern:
+
+**Initial Setup (One-time per strategy):**
+
+Before editing code, you must first run `./scripts/clone_strategy.sh --name strategy_name` to create the Strategy Studio directory structure. Then run `./scripts/build_copy_strategy.sh` to ensure the necessary files are in place. Without these initial steps, deployment will fail with "no files found" errors.
+
+**Daily Workflow:**
+
+1. **Edit Strategy Code**: Modify C++ files in `src/strategy_name/` (e.g., `src/venue_arb/venue_arb.cpp`)
+
+2. **Deploy and Build**: Run `./scripts/deploy_strategy.sh --name strategy_name` to:
+   - Copy source files to Strategy Studio directory
+   - Compile the C++ code into a shared library (`.so`)
+   - Make the library available to the backtest server
+
+3. **Run Backtest**: Use `./scripts/run_strategy.sh` or `./scripts/bt_instance.sh` to:
+   - Create a backtest instance with specified parameters (symbols, dates, account settings)
+   - Execute the backtest using the processed market data
+   - Monitor execution and view results
+
+4. **Analyze Results**: Review logs, performance metrics, and trading activity
+
+### Integration with Processed Data
+
+The processed market data from Phase 1 requires additional steps before Strategy Studio can use it:
+
+**Data Merging and Preparation:**
+
+1. **Merge IEX and Nasdaq Data**: Use the scripts in `danny/merger/` to combine data from multiple venues:
+   - `merge.sh`: Merges individual Nasdaq and IEX CSV files, sorts by `SOURCE_TIME`
+   - `combine_nasdaq.sh`: Combines multiple Nasdaq files by date prefix (YYYYMMDD)
+   - `to_txtgz.sh`: Converts merged CSV files to compressed `.txt.gz` format required by Strategy Studio
+
+2. **File Format**: Strategy Studio's `TextTickReader` expects files in `.txt.gz` format with the `DepthUpdateByPrice` format matching our pipeline output.
+
+**Required Configuration:**
+
+Before running backtests, you must manually configure Strategy Studio to point to your data:
+
+1. **Edit `/ss/bt/backtester_config.txt`**: 
+   - Point to the directory containing your tick data files (e.g., `/student_work/$USER/group_01_project/danny/merger/merged_data/`)
+
+2. **Edit `/ss/bt/preferred_feeds.csv`**:
+   - Add entries for all venues being used (e.g., "NASDAQ", "IEX")
+   - This tells Strategy Studio which market centers to load from the tick data files
+
+**Data Flow:**
+
+- Processed tick and trade files from `output/converted_combined/` → Merged via `danny/merger/` scripts → Converted to `.txt.gz` → Placed in configured directory → Loaded by Strategy Studio via `TextTickReader` when paths are correctly configured
+
+### Benefits of Automation
+
+This automation approach provides several advantages:
+
+- **Reproducibility**: Every backtest run uses the same deployment process
+- **Quota Management**: Logs and large files are managed outside home directories
+- **Error Prevention**: Automated steps reduce manual errors
+- **Efficiency**: Single commands replace multi-step manual processes
+- **Version Control**: Strategy code stays in git, not scattered in Strategy Studio directories
+
+The scripts handle the complexity of Strategy Studio's build system, allowing developers to focus on strategy logic rather than deployment mechanics.
+
+---
+
 # Phase 3: The Strategies
 
 ## What Is USO?
