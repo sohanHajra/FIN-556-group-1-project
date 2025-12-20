@@ -18,7 +18,8 @@ LinkedIn: https://www.linkedin.com/in/dannysilverstein/ Email: dhsilver06@gmail.
 
 LinkedIn: http://www.linkedin.com/in/aditya-dalal-bba2602b3 Email: dalaladi224@gmail.com
 
-**Sohan Hajra (shajra2)**:
+**Sohan Hajra (shajra2)**: I am a senior studing Mathematics and Computer Science with a minor in Statistics, and plan to graduate in May 2026. I am passionate about market microstructure, creating data driven trading systems and formulating trading strategies. I primarily worked on creating the ETF Arbitrage Strategy and making it behave more intelligently to mimic how real market makers operate.
+Linkedin: https://www.linkedin.com/in/sohan-hajra/ Email: sohancollege27@gmail.com
 
 ---
 
@@ -277,6 +278,10 @@ Raw Data (Databento)
     ↓
 Final Output: Strategy Studio compatible tick/trade files
 ```
+
+### Merging of IEX and Nasdaq USO Data
+
+Using the `TextTickReader` from Strategy Studio, specifically the `DepthUpdateByPrice` format, we merged IEX and Nasdaq data for USO in order to have a combined ledger for market conditions, tick by tick. For the sake of simplicity, this was done through merging in order of `SOURCE_TIME`, the time the event was created by the exchange. The added latency beyond this time is explored further in a later stage.
 
 #### Technical Notes for those that are inclined
 
