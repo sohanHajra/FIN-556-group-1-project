@@ -29,7 +29,6 @@ public:
     ~EtfArb1Strategy();
 
 public: 
-    
     virtual void OnResetStrategyState() override;
     virtual void DefineStrategyParams() override; 
     virtual void OnParamChanged(StrategyParam& param) override;
