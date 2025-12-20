@@ -18,7 +18,7 @@ venue_arb_aggressive::venue_arb_aggressive(StrategyID strategyID,
       arb_threshold_(0.01),
       aggressiveness_(0.01),  // Higher default aggressiveness for better fills
       position_size_(100),
-      debug_(false)
+      debug_(true)
 {
 
 }
@@ -115,6 +115,10 @@ void venue_arb_aggressive::EvaluateArb(const Instrument* inst)
     if (!n.valid() || !i.valid())
         return;
 
+    // Calculate spreads
+    double spread_nasdaq_arb = i.bid - n.ask;  // Buy NASDAQ opportunity
+    double spread_iex_arb = n.bid - i.ask;      // Buy IEX opportunity
+    
     int desired_position = 0;
     MarketCenterID venue = MARKET_CENTER_ID_NASDAQ;
 
@@ -129,6 +133,23 @@ void venue_arb_aggressive::EvaluateArb(const Instrument* inst)
         venue = MARKET_CENTER_ID_IEX;
     }
 
+    // Debug output to see all opportunities
+    if (debug_ || desired_position != 0) {
+        int current_pos = portfolio().position(inst);
+        int working_orders = orders().num_working_orders(inst);
+        std::cout
+            << "[ARB CHECK] " << inst->symbol()
+            << " NASDAQ(" << QuoteToString(n) << ")"
+            << " IEX(" << QuoteToString(i) << ")"
+            << " spread_nasdaq=" << spread_nasdaq_arb
+            << " spread_iex=" << spread_iex_arb
+            << " threshold=" << arb_threshold_
+            << " current_pos=" << current_pos
+            << " working_orders=" << working_orders
+            << " desired=" << desired_position
+            << std::endl;
+    }
+
     if (desired_position != 0) {
         AdjustPortfolio(inst, desired_position, venue);
     }
@@ -140,10 +161,19 @@ void venue_arb_aggressive::AdjustPortfolio(const Instrument* inst, int desired_p
     int current_position = portfolio().position(inst);
     int trade_size = desired_position - current_position;
 
-    if (trade_size == 0)
+    if (trade_size == 0) {
+        if (debug_) {
+            std::cout << "[SKIP] " << inst->symbol() 
+                      << " trade_size=0 (already at desired position " << desired_position << ")" << std::endl;
+        }
         return;
+    }
 
     if (orders().num_working_orders(inst) > 0) {
+        if (debug_) {
+            std::cout << "[SKIP] " << inst->symbol() 
+                      << " has " << orders().num_working_orders(inst) << " working orders" << std::endl;
+        }
         return;
     }
     SendOrder(inst, trade_size, venue);
