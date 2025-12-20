@@ -1,5 +1,16 @@
 #pragma once
 
+#ifndef _STRATEGY_STUDIO_ETF_ARB_STRATEGY_H_
+#define _STRATEGY_STUDIO_ETF_ARB_STRATEGY_H_
+
+#ifdef _WIN32
+    #define _STRATEGY_EXPORTS __declspec(dllexport)
+#else
+    #ifndef _STRATEGY_EXPORTS
+        #define _STRATEGY_EXPORTS
+    #endif
+#endif
+
 #include <Strategy.h>
 #include <MarketModels/Instrument.h>
 #include <OrderParams.h>     
@@ -58,3 +69,5 @@ private:
     double position_size_;      
     double aggressiveness_; 
 };
+
+#endif
