@@ -789,13 +789,13 @@ Positions are constructed by going **long the undervalued leg** and **short the 
 This is best viewed as **microstructure-driven arbitrage anchored to ETF mechanics**, rather than risk-free arbitrage.
 
 ---
-# ETF Arbitrage Strategy: `EtfArb1Strategy`
+## ETF Arbitrage Strategy: `EtfArb1Strategy`
 
 We designed `EtfArb1Strategy` as a **unified, high-performance arbitrage engine**. Instead of maintaining separate files for different logic (e.g., `EtfArb_Aggressive`, `EtfArb_Skew`), we integrated advanced microstructure features directly into the core decision loop.
 
 This single strategy file (`EtfArb1Strategy.cpp`) handles price discovery, risk management, and execution simultaneously.
 
-## Core Architecture
+### Core Architecture
 
 The strategy operates on a simple principle: **Fair Value Convergence**.
 * **Inputs:** It subscribes to an ETF (e.g., `USO`) and a basket of underlying instruments (e.g., `CL` Futures).
@@ -804,7 +804,7 @@ The strategy operates on a simple principle: **Fair Value Convergence**.
 
 ---
 
-## Integrated Logic Modules (All in One File)
+### Integrated Logic Modules (All in One File)
 
 We engineered four advanced behaviors directly into the main execution pipeline. These are always active or tunable via runtime parameters.
 
@@ -837,7 +837,7 @@ We engineered four advanced behaviors directly into the main execution pipeline.
 
 ---
 
-## Logic Flow Summary
+### Logic Flow Summary
 
 Every time a new quote arrives, the `EtfArb1Strategy` performs this atomic sequence:
 
@@ -848,7 +848,7 @@ Every time a new quote arrives, the `EtfArb1Strategy` performs this atomic seque
 5.  **Check Thresholds:** Compares `BestPrice` vs `SkewedFairValue`.
 6.  **Execute:** Sends a Limit Order with **Dynamic Aggressiveness** to the specific best venue.
 
-## Architectural Advantages
+### Architectural Advantages
 
 * **Unified Maintenance:** All logic resides in a single, cohesive engine. Improvements to core features (like safety checks or pricing logic) immediately benefit all execution modes.
 * **Dynamic Configuration:** Strategy behavior is driven by runtime parameters rather than compile-time flags. This allows for rapid iteration and testing of different trading styles (e.g., Passive vs. Aggressive) using a single deployed binary.
