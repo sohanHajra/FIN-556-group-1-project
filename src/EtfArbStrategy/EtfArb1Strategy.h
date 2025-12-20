@@ -4,8 +4,8 @@
 #include <MarketModels/Instrument.h>
 #include <OrderParams.h>      // Match file list
 #include <Order.h>            // Match file list
-#include <BarEventMsg.h>      // Match file list
-#include <QuoteEventMsg.h>    // Match file list
+#include <BarEventMsg.h>      
+#include <QuoteEventMsg.h>   
 #include <map>
 #include <vector>
 #include <string>
