@@ -73,7 +73,7 @@ void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegi
             if (inst->symbol() == sym) {
                  basket_weights_[inst] = 1.0 / symbol_list.size(); 
                  last_mid_prices_[inst] = 0.0;
-                 eventRegister->RegisterForInstrument(inst);
+                //  eventRegister->RegisterForInstrument(inst);
             }
         }
     }
