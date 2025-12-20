@@ -75,6 +75,7 @@ void venue_arb_aggressive::OnResetStrategyState()
 {
     nasdaq_quotes_.clear();
     iex_quotes_.clear();
+    last_opportunities_.clear();  // Reset opportunity tracking
 }
 
 void venue_arb_aggressive::OnQuote(const QuoteEventMsg& msg)
@@ -119,22 +120,49 @@ void venue_arb_aggressive::EvaluateArb(const Instrument* inst)
     double spread_nasdaq_arb = i.bid - n.ask;  // Buy NASDAQ opportunity
     double spread_iex_arb = n.bid - i.ask;      // Buy IEX opportunity
     
+    // Get last opportunity state
+    LastOpportunity& last_opp = last_opportunities_[inst];
+    
+    // Determine current opportunity
+    int current_direction = 0;
     int desired_position = 0;
     MarketCenterID venue = MARKET_CENTER_ID_NASDAQ;
 
     if (i.bid >= n.ask + arb_threshold_) {
         // Buy on NASDAQ (cheaper), sell on IEX (more expensive)
+        current_direction = 1;
         desired_position = position_size_;
         venue = MARKET_CENTER_ID_NASDAQ;
     }
     else if (n.bid >= i.ask + arb_threshold_) {
         // Buy on IEX (cheaper), sell on NASDAQ (more expensive)
+        current_direction = -1;
         desired_position = position_size_;
         venue = MARKET_CENTER_ID_IEX;
     }
 
-    // Debug output to see all opportunities
-    if (debug_ || desired_position != 0) {
+    // Check if this is a NEW opportunity
+    bool is_new_opportunity = false;
+    
+    if (current_direction == 0) {
+        // No opportunity exists - reset tracking
+        if (last_opp.direction != 0) {
+            // Opportunity just disappeared - reset
+            last_opp.direction = 0;
+        }
+    }
+    else {
+        // Opportunity exists
+        if (current_direction != last_opp.direction) {
+            // Different opportunity OR opportunity just appeared (last was 0)
+            is_new_opportunity = true;
+            last_opp.direction = current_direction;
+        }
+        // If same direction as last, don't trade (already traded on this opportunity)
+    }
+
+    // Debug output
+    if (debug_ || desired_position != 0 || is_new_opportunity) {
         int current_pos = portfolio().position(inst);
         int working_orders = orders().num_working_orders(inst);
         std::cout
@@ -147,10 +175,14 @@ void venue_arb_aggressive::EvaluateArb(const Instrument* inst)
             << " current_pos=" << current_pos
             << " working_orders=" << working_orders
             << " desired=" << desired_position
+            << " curr_dir=" << current_direction
+            << " last_dir=" << last_opp.direction
+            << " NEW=" << (is_new_opportunity ? "YES" : "NO")
             << std::endl;
     }
 
-    if (desired_position != 0) {
+    // Only trade on NEW opportunities
+    if (is_new_opportunity && desired_position != 0) {
         AdjustPortfolio(inst, desired_position, venue);
     }
 }

@@ -30,6 +30,11 @@ struct VenueQuote {
     }
 };
 
+// Track last opportunity to avoid repeated trades on same opportunity
+struct LastOpportunity {
+    int direction = 0;  // 1 = buy NASDAQ, -1 = buy IEX, 0 = none
+};
+
 class venue_arb_aggressive : public Strategy {
 public:
     venue_arb_aggressive(StrategyID strategyID,
@@ -63,6 +68,9 @@ private:
     // venue state
     boost::unordered_map<const Instrument*, VenueQuote> nasdaq_quotes_;
     boost::unordered_map<const Instrument*, VenueQuote> iex_quotes_;
+    
+    // opportunity tracking (to avoid repeated trades on same opportunity)
+    boost::unordered_map<const Instrument*, LastOpportunity> last_opportunities_;
 
     // strategy params
     double arb_threshold_;
