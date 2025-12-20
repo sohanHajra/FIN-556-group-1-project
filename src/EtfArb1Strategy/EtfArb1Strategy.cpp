@@ -193,12 +193,33 @@ void EtfArb1Strategy::OnBar(const BarEventMsg& msg) {}
 void EtfArb1Strategy::OnOrderUpdate(const OrderUpdateEventMsg& msg) {}
 
 extern "C" {
-    const char* GetType() { return "EtfArb1Strategy"; }
-    IStrategy* CreateStrategy(const char* strategyType, unsigned strategyID, const char* strategyName, const char* groupName) {
-        if (strcmp(strategyType, GetType()) == 0) return new EtfArb1Strategy(strategyID, strategyName, groupName);
-        return NULL;
+
+    _STRATEGY_EXPORTS const char* GetType() {
+        return "etf_arb";
     }
-    const char* GetAuthor() { return "dlariviere"; }
-    const char* GetAuthorGroup() { return "UIUC"; }
-    const char* GetReleaseVersion() { return "1.0"; }
+
+    _STRATEGY_EXPORTS IStrategy* CreateStrategy(const char* strategyType,
+                                                unsigned strategyID,
+                                                const char* strategyName,
+                                                const char* groupName) {
+        if (std::strcmp(strategyType, GetType()) == 0) {
+            // Need to use conversion operator on object not pointer
+            // this is to invoke IStrategy* operator
+            return *(new etf_arb(strategyID, strategyName, groupName));
+        }
+        return nullptr;
+    }
+
+    _STRATEGY_EXPORTS const char* GetAuthor() {
+        return "dlariviere";
+    }
+
+    _STRATEGY_EXPORTS const char* GetAuthorGroup() {
+        return "UIUC";
+    }
+
+    _STRATEGY_EXPORTS const char* GetReleaseVersion() {
+        return Strategy::release_version();
+    }
 }
+
