@@ -3,10 +3,9 @@
 #endif
 
 #include "EtfArb1Strategy.h"
-#include <InstrumentManager.h>
-#include <Portfolio.h>
 #include <sstream> 
 #include <iostream>
+
 
 using namespace RCM::StrategyStudio;
 using namespace RCM::StrategyStudio::MarketModels;
