@@ -1,3 +1,79 @@
+# Venue Arbitrage and ETF Arbitrage Implementation for United States Oil Fund, LP (USO)
+
+## Overview
+
+This report outlines the process of building a robust arbitrage-trading strategy including data parsing and pipelining. The goal was to transform raw PCAP (Packet Capture) files from Databento and IEX into actionable data and trading behavior for ETF and Venue Arbitrage Trading Strategies on Strategy Studio, a platform used to develop and test trading strategies. The project involved multiple technical phases, including parsing raw data, interweaving market data between exchanges, and implementing various versions of these strategies.
+
+Each phase presented unique challenges and learning opportunities, which are detailed below. This write-up is designed to be accessible to readers without prior HFT or Algorithmic Trading experience, offering clarity through structured explanations and real-world analogies.
+
+## Biographies
+
+**Danny Silverstein (dannys2)**: I am a senior studying Applied Mathematics with a minor in Computer Science. I am graduating in May 2026 and am passionate about applying mathematics to the trading industry, especially having to do with derivatives pricing and the management of ETFs with derivative underlyings. Created the initial Venue Arbitrage and ETF Arbitrage strategies in Strategy Studio, implemented the data merging, and small modifications to the IEX parser including scripts for automation.
+
+LinkedIn: https://www.linkedin.com/in/dannysilverstein/ Email: dhsilver06@gmail.com
+
+**Anton Charov (acharov2)**:
+
+**Aditya Dalal (adala9)**: I am a senior studying Math and Computer Science, and plan to graduate in May 2026. I am passionate about applications of math and CS to the real world and am especially interested in the financial industry. I worked on making the ETF Arbitrage strategy and loading in the CME data and writing scripts to automate the PCAP extraction process.
+
+LinkedIn: http://www.linkedin.com/in/aditya-dalal-bba2602b3 Email: dalaladi224@gmail.com
+
+**Sohan Hajra (shajra2)**:
+
+---
+
+## Phase 1: Understanding PCAPs and Data Sources
+
+### Defining the Objective
+
+High-frequency trading relies on precise and timely market data. The primary goal of this project was to take raw market data captured in PCAP files, process it efficiently, and use it to build trading strategies. This required:
+
+- Parsing PCAP files to extract meaningful data.
+- Preparing the data for Strategy Studio to support trading decisions.
+
+### What Are PCAPs?
+
+Packet Capture (PCAP) files represent raw network data captured at the packet level. They are commonly used in networking and cybersecurity but are also crucial in finance for recording market data streams.
+
+Each file contains a series of packets, each comprising a header and payload structured according to the network protocol in use. The PCAP header provides metadata describing each captured packet, such as its timestamp and size, while Ethernet headers define the link-layer frame structure. The remainder of the PCAP contains market data, which varies in structure from exchange to exchange.
+
+In this project, the PCAP files contained:
+
+- Ethernet headers.
+- TCP/UDP packets.
+- Market data messages from financial exchanges.
+
+These files are large and complex, requiring specialized tools for decompression and parsing.
+
+### Databento's Role
+
+Databento provided the Nasdaq and CME market data in compressed PCAP formats. Their platform offered efficient tools for handling massive datasets:
+
+- Compressed Files: PCAPs were stored in gzipped or zstd formats.
+- Sequenced Batches: Data was organized sequentially to ensure integrity.
+
+### Initial Challenges with PCAPs
+
+- Understanding Packet Structure: The project began with a detailed study of the PCAP file structure, including Ethernet headers and payloads.
+- Corrupted Packets: Some packets were incomplete or corrupt, necessitating careful handling.
+- Tool Familiarization: Tools like Wireshark were used to visualize and dissect packets. This helped identify patterns and validate parsing logic.
+
+Once we familiarized ourselves with PCAPs, we explored them on a per-exchange basis. Starting with Nasdaq.
+
+Exchanges we used:
+
+- CME - For CL contracts
+- Nasdaq - For USO ETF
+- IEX - For USO ETF
+
+### Exploring Nasdaq PCAP Structure
+
+Nasdaq ITCH protocol specifications
+
+Example Nasdaq message type: Add order no "market participator identification"
+
+---
+
 # Phase 3: The Strategies
 
 ## What Is USO?
