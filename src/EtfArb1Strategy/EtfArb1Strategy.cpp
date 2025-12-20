@@ -18,7 +18,8 @@ EtfArb1Strategy::EtfArb1Strategy(StrategyID strategyID, const std::string& strat
       basket_symbols_param_("CL"),             
       entry_threshold_(0.05),                  
       position_size_(100),
-      aggressiveness_(0.01) {
+      aggressiveness_(0.01)
+      inventory_skew_(0.0001) {
 }
 
 EtfArb1Strategy::~EtfArb1Strategy() {}
@@ -29,6 +30,7 @@ void EtfArb1Strategy::DefineStrategyParams() {
     params().CreateParam(CreateStrategyParamArgs("threshold", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_DOUBLE, entry_threshold_));
     params().CreateParam(CreateStrategyParamArgs("size", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_DOUBLE, position_size_));
     params().CreateParam(CreateStrategyParamArgs("aggressiveness", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_DOUBLE, aggressiveness_));
+    params().CreateParam(CreateStrategyParamArgs("skew", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_DOUBLE, inventory_skew_));
 }
 
 void EtfArb1Strategy::OnParamChanged(StrategyParam& param) {
@@ -39,6 +41,7 @@ void EtfArb1Strategy::OnParamChanged(StrategyParam& param) {
     } else if (param.param_name() == "aggressiveness") {
         if (!param.Get(&aggressiveness_)) return;
     }
+    
 }
 
 void EtfArb1Strategy::OnResetStrategyState() {
