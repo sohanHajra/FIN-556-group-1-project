@@ -19,7 +19,6 @@ EtfArb1Strategy::EtfArb1Strategy(StrategyID strategyID, const std::string& strat
       entry_threshold_(0.05),                  
       position_size_(100),
       aggressiveness_(0.01) {
-    // Empty constructor. Params are defined in DefineStrategyParams.
 }
 
 EtfArb1Strategy::~EtfArb1Strategy() {}
