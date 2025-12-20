@@ -136,6 +136,55 @@ Helpful details. The converter filters for UDP packets, handles IPv4 and IPv6, a
 
 Next, we convert Level 3 (order level) ITCH messages into Level 2 (price-level) depth data. We do this in `nasdaq_ss_tick_builder.py`, and manage our own order book state. This is done with a `PriceLevelBook` class which maintains: per-order tracking with `(order_id -> {side, price, size})`, and aggregated levels `(side -> price -> {size, num_orders})`.
 
+#### Depth-by-Price (P) Tick Generation
+
+The pipeline processes order book update messages to maintain a real-time view of price levels and emits depth-by-price ticks whenever a price level changes.
+
+**Order Book Update Messages**:
+
+| ITCH Message | Type | Action | L2 Output |
+|-------------|------|--------|-----------|
+| `A` / `F` | AddOrder | Add order to book, aggregate by price | Emit P tick if level changes |
+| `E` | OrderExecuted | Reduce order size, update level | Emit P tick if level changes |
+| `C` | OrderExecutedWithPrice | Same as E, but with execution price | Emit P tick if level changes |
+| `X` | OrderCancel | Partial cancel, reduce size | Emit P tick if level changes |
+| `D` | OrderDelete | Remove order completely | Emit P tick if level cleared |
+| `U` | OrderReplace | Cancel old order, add new order | Emit 1-2 P ticks (old price, new price) |
+
+**L3 to L2 Aggregation Logic**:
+
+When an order is added at a price level, the system aggregates all orders at that price:
+- If no level exists at that price: create new level, emit P tick
+- If level exists: aggregate size (+shares), increment num_orders (+1), emit P tick
+
+When an order is executed, canceled, or deleted:
+- Reduce order size in tracking
+- Update aggregated level: size decreases, num_orders may decrease
+- If level becomes empty: emit P tick with size=0, num_orders=0
+
+**Strategy Studio Format (P Ticks)**:
+
+Columns:
+
+- `COLLECTION_TIME`: UTC timestamp
+- `SOURCE_TIME`: Same as COLLECTION_TIME
+- `SEQ_NUM`: Synthetic sequence number
+- `TICK_TYPE`: "P" (depth-by-price)
+- `MARKET_CENTER`: "NASDAQ"
+- `SIDE`: 1=bid, 2=ask
+- `PRICE`: Price level (4 decimal precision)
+- `SIZE`: Aggregated size at price level
+- `NUM_ORDERS`: Number of orders at price level
+- `IS_IMPLIED`: 0 (not implied)
+- `REASON`: 1=UNATTRIBUTED, 2=ADD_ORDER, 3=PARTIAL_CANCEL, 4=FULL_CANCEL, 5=EXECUTED, 8=CANCEL_REPLACE
+- `IS_PARTIAL`: 0 (not partial)
+
+**When P Ticks Are Emitted**:
+
+P ticks are emitted only when a price level's aggregated size or number of orders changes. This ensures Strategy Studio receives an accurate, real-time view of the order book depth without redundant updates.
+
+#### Trade (T) Tick Generation
+
 **Trade Message Types**:
 
 | ITCH Message | Type | Description | Price Source |
