@@ -68,9 +68,42 @@ Exchanges we used:
 
 ### Exploring Nasdaq PCAP Structure
 
-Nasdaq ITCH protocol specifications
+The Nasdaq TotalView-ITCH (ITCH 5.0) protocol is a binary message format used by Nasdaq to disseminate real-time market data. ITCH messages are transmitted over UDP using the MoldUDP64 encapsulation protocol, which packages multiple ITCH messages into single UDP packets for efficient network transmission.
 
-Example Nasdaq message type: Add order no "market participator identification"
+Each ITCH message begins with a single-byte message type identifier, followed by a fixed-length payload that varies by message type. The protocol supports dozens of message types, including order book updates (add, cancel, replace, execute), trades, system events, and administrative messages. Understanding these message structures is essential for parsing the raw binary data from PCAP files.
+
+#### Example: Add Order No MPID Attribution Message (Type 'A')
+
+The "Add Order No MPID Attribution" message is one of the most common message types in the ITCH feed. It represents a new order being added to the order book without Market Participator Identification (MPID) attribution. This message type is fundamental to reconstructing the Level 3 order book state.
+
+**Message Structure:**
+
+| Name | Offset | Length | Value | Notes |
+|------|--------|--------|-------|-------|
+| **Message Type** | 0 | 1 | "A" | Indicates "Add Order - No MPID Attribution Message" |
+| **Stock Locate** | 1 | 2 | Integer | Locate code identifying the security |
+| **Tracking Number** | 3 | 2 | Integer | Nasdaq internal tracking number |
+| **Timestamp** | 5 | 6 | Integer | Nanoseconds since midnight |
+| **Order Reference Number** | 11 | 8 | Integer | Unique reference number assigned to the new order at time of receipt |
+| **Buy/Sell Indicator** | 19 | 1 | Alpha | "B" = Buy Order, "S" = Sell Order |
+| **Shares** | 20 | 4 | Integer | Total number of shares associated with the order |
+| **Stock** | 24 | 8 | Alpha | Stock symbol, right-padded with spaces |
+| **Price** | 32 | 4 | Price (4) | Display price of the new order (scaled integer) |
+
+#### Other Common ITCH Message Types
+
+The ITCH protocol includes many other message types that are processed by the pipeline:
+
+- **Type 'F'**: Add Order with MPID Attribution (similar to 'A' but includes market maker identification)
+- **Type 'E'**: Order Executed Message (partial or full execution of an order)
+- **Type 'C'**: Order Executed With Price Message (execution at price different from display price)
+- **Type 'X'**: Order Cancel Message (partial cancellation)
+- **Type 'D'**: Order Delete Message (full cancellation/removal)
+- **Type 'U'**: Order Replace Message (modify existing order)
+- **Type 'P'**: Non-Cross Trade Message (trade from hidden orders)
+- **Type 'Q'**: Cross Trade Message (opening/closing crosses)
+
+Each message type has its own fixed-length structure, allowing for efficient binary parsing.
 
 ## NASDAQ Data Processing Pipeline
 
