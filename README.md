@@ -231,7 +231,7 @@ Final Output: Strategy Studio compatible tick/trade files
 
 ### Merging of IEX and Nasdaq USO Data
 
-Using the `TextTickReader` from Strategy Studio, specifically the 'DepthUpdateByPrice' format, we merged IEX and Nasdaq data for USO in order to have a combined ledger for market conditions, tick by tick. For the sake of simplicity, this was done through merging in order of 'SOURCE_TIME', the time the event was created by the exchange. The added latency beyond this time is explored further in a later stage.
+Using the `TextTickReader` from Strategy Studio, specifically the `DepthUpdateByPrice` format, we merged IEX and Nasdaq data for USO in order to have a combined ledger for market conditions, tick by tick. For the sake of simplicity, this was done through merging in order of `SOURCE_TIME`, the time the event was created by the exchange. The added latency beyond this time is explored further in a later stage.
 
 #### Technical Notes for those that are inclined
 
