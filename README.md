@@ -18,7 +18,8 @@ LinkedIn: https://www.linkedin.com/in/dannysilverstein/ Email: dhsilver06@gmail.
 
 LinkedIn: http://www.linkedin.com/in/aditya-dalal-bba2602b3 Email: dalaladi224@gmail.com
 
-**Sohan Hajra (shajra2)**:
+**Sohan Hajra (shajra2)**: I am a senior studing Mathematics and Computer Science with a minor in Statistics, and plan to graduate in May 2026. I am passionate about market microstructure, creating data driven trading systems and formulating trading strategies. I primarily worked on creating the ETF Arbitrage Strategy and making it behave more intelligently to mimic how real market makers operate.
+Linkedin: https://www.linkedin.com/in/sohan-hajra/ Email: sohancollege27@gmail.com
 
 ---
 
