@@ -2,6 +2,10 @@
 
 ## What Is USO?
 
+![USO Overview](images/uso_overview.png)
+
+![USO Holdings](images/uso_holdings.png)
+
 USO is an ETF designed to provide exposure to short-term movements in crude oil prices, but it does **not** hold physical oil. Instead, it holds **WTI crude oil futures contracts**, primarily at the **front of the futures curve**.
 
 The fund is managed by **United States Oil Fund, LP**, and its mandate is to track **daily changes in oil prices** as closely as possible using exchange-traded futures.
@@ -52,6 +56,8 @@ These properties make USO a natural candidate for **ETF–futures relative-value
 ---
 
 # The Venue Arbitrage Strategy
+
+![Venue Arbitrage Example](images/qt_venuearb.png)
 
 ## Venue Arbitrage Between IEX and Nasdaq for USO
 
@@ -118,6 +124,8 @@ The strategy succeeds only when execution speed and venue-level data are suffici
 ---
 
 # ETF Arbitrage: Core Mechanism and Trading Intuition
+
+![ETF Arbitrage Visual](images/etf_arb_visual.png)
 
 Most ETFs are kept aligned with their underlying assets through a **creation–redemption mechanism** operated by **Authorized Participants (APs)**. When an ETF’s market price deviates from the value of its underlying holdings (its implied NAV), APs can create or redeem ETF shares in exchange for the underlying basket, locking in the price difference and pushing the ETF back toward fair value.
 
