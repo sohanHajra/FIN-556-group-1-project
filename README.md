@@ -12,7 +12,9 @@ Each phase presented unique challenges and learning opportunities, which are det
 
 LinkedIn: https://www.linkedin.com/in/dannysilverstein/ Email: dhsilver06@gmail.com
 
-**Anton Charov (acharov2)**:
+**Anton Charov (acharov2)**: I am a senior studying Computer Science, and plan to graduate in May 2026. I am always hungry for market micro-structure and building robust trading strategies with systems to accompany them. I am particulary fond of equity options, and derivative products which provide value. I always say if it doesn't make PnL, it shouldn't be in production -- of course, there are edge cases, which a good trader considers. For this project, I created multiple venue arb trading stratgies, implemented stragical variations of arbs for better fill rates, built powerful strategy studio automation commands, created a full NASDAQ parser compatible with strategy studio, developed interactive tick-level multi-exchange visualizations with arb highlights, and other optimizations and modifcations to complementary scripts.
+
+am passionate about applying non-conventional approaches to trading
 
 **Aditya Dalal (adala9)**: I am a senior studying Math and Computer Science, and plan to graduate in May 2026. I am passionate about applications of math and CS to the real world and am especially interested in the financial industry. I worked on making the ETF Arbitrage strategy and loading in the CME data and writing scripts to automate the PCAP extraction process.
 
