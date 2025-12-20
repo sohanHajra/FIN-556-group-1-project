@@ -195,7 +195,7 @@ void EtfArb1Strategy::OnOrderUpdate(const OrderUpdateEventMsg& msg) {}
 extern "C" {
 
     _STRATEGY_EXPORTS const char* GetType() {
-        return "etf_arb";
+        return "EtfArb1Strategy";
     }
 
     _STRATEGY_EXPORTS IStrategy* CreateStrategy(const char* strategyType,
