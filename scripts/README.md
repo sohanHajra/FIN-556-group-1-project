@@ -127,28 +127,41 @@ What this does:
 
 ---
 
-### 2b) Quick deploy + test (convenience script)
+### 2b) Reference guide for complete workflow
 
-For a complete workflow in one command, use `deploy_and_test.sh`:
+**Note:** `deploy_and_test.sh` is a **reference guide only** - it does NOT execute commands. It prints the recommended pipeline structure you should follow manually.
+
+To see the recommended workflow structure:
 
 ```bash
-./scripts/deploy_and_test.sh \
-  --strategy venue_arb \
-  --instance MyTest \
-  --start 2023-09-05 \
-  --end 2023-09-05
+./scripts/deploy_and_test.sh
 ```
 
-This script automatically:
-1. Stops and restarts the backtest server
-2. Deploys and builds the strategy
-3. Runs the backtest
-4. Shows backtest server logs
+This will print a helpful guide showing the complete pipeline:
+1. Restart backtest server
+2. Deploy and build the strategy
+3. Terminate existing instances
+4. Run full pipeline (recheck → create → backtest)
+5. View logs (optional)
 
-You can use config defaults from `bt_config.sh` and only specify the strategy:
+**To actually run the workflow**, copy and execute the commands shown in the guide, or use the individual scripts:
 
 ```bash
-./scripts/deploy_and_test.sh --strategy venue_arb
+# Restart server
+./scripts/bt_server.sh stop && sleep 3 && ./scripts/bt_server.sh start
+
+# Deploy strategy
+./scripts/deploy_strategy.sh --name venue_arb
+
+# Terminate all instances
+./scripts/run_strategy.sh killall && sleep 8
+
+# Run full pipeline (uses config defaults or override with flags)
+./scripts/run_strategy.sh run
+./scripts/run_strategy.sh run --start 2023-09-05 --end 2023-09-05
+
+# View logs (optional)
+./scripts/ss_logs.sh bt
 ```
 
 ---

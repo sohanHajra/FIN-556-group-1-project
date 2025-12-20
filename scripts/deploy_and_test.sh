@@ -3,8 +3,11 @@
 # Manual Workflow Guide - Deploy and Test Strategy
 # ============================================================================
 #
+# NOTE: This file is a REFERENCE GUIDE only. It does NOT execute any commands.
+# It prints the recommended pipeline structure you should follow manually.
+#
 # This file documents the manual steps to deploy and test a strategy.
-# Run these commands in order:
+# Copy and run these commands in order:
 #
 # ============================================================================
 # Step 0 (Optional): Clean backtest server logs
@@ -82,12 +85,21 @@
 #
 # ============================================================================
 
-echo "This script has been replaced with a manual workflow guide."
-echo "See the comments in this file for step-by-step instructions."
+echo "============================================================================"
+echo "REFERENCE GUIDE: Deploy and Test Strategy Pipeline"
+echo "============================================================================"
 echo ""
-echo "Quick reference:"
+echo "This file is a REFERENCE GUIDE only. It does NOT execute any commands."
+echo "It shows you the recommended pipeline structure to follow manually."
+echo ""
+echo "See the comments above for detailed step-by-step instructions."
+echo ""
+echo "Quick reference (copy and run these commands):"
+echo ""
 echo "  1. ./scripts/bt_server.sh stop && sleep 3 && ./scripts/bt_server.sh start"
 echo "  2. ./scripts/deploy_strategy.sh --name <STRATEGY>"
 echo "  3. ./scripts/run_strategy.sh killall && sleep 8"
 echo "  4. ./scripts/run_strategy.sh run"
 echo "  5. ./scripts/ss_logs.sh bt  (optional)"
+echo ""
+echo "============================================================================"
