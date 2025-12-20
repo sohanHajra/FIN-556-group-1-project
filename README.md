@@ -432,6 +432,58 @@ The scripts handle the complexity of Strategy Studio's build system, allowing de
 
 ---
 
+## Data Visualization and Analysis Tools
+
+To analyze processed market data and validate strategy behavior, we developed interactive visualization tools that enable tick-level exploration of multi-exchange order book dynamics and arbitrage opportunities.
+
+### Event Stream Visualizer
+
+The `event_stream_visualizer.py` tool provides a web-based interactive interface for exploring NASDAQ and IEX market data side-by-side. Built using Plotly Dash, it enables real-time analysis of order book updates, trades, and cross-venue arbitrage opportunities.
+
+**Key Features:**
+
+- **Grid-based visualization**: Uniform event spacing for easy comparison across time
+- **Color-coded events**: 
+  - 🔵 Blue: Bid orders (SIDE=1)
+  - 🔴 Red: Ask/Offer orders (SIDE=2)
+  - 🟡 Yellow: Trades (TICK_TYPE="T")
+- **Multi-exchange support**: View NASDAQ and IEX simultaneously with distinct color schemes
+- **Arbitrage highlighting**: Automatically detects and highlights cross-venue arbitrage opportunities
+- **Interactive controls**:
+  - Adjustable event window (100-5000 events)
+  - Toggle event types (bids, asks, trades)
+  - Toggle market centers on/off
+  - Forward/backward navigation through event stream
+- **Rich tooltips**: Hover to see price, size, timestamp, sequence number, and market center
+
+**Usage:**
+
+The visualization tools are located in the `anton/` directory. For detailed setup and usage instructions, see:
+
+- **Visualization**: `anton/src/visualize/README.md` - Complete guide to running the event stream visualizer
+- **Data Processing**: `anton/src/ingest/README.md` - Full documentation for the NASDAQ ITCH processing pipeline
+
+**Quick Start:**
+
+```bash
+# Navigate to anton directory
+cd anton
+
+# Run visualizer (see anton/src/visualize/README.md for details)
+python src/visualize/event_stream_visualizer.py --date 20250401
+```
+
+**Use Cases:**
+
+- **Strategy validation**: Visualize how venue arbitrage strategies would have reacted to historical market conditions
+- **Market microstructure analysis**: Observe quote updates, order book dynamics, and trade flow patterns
+- **Arbitrage opportunity identification**: See when and where cross-venue price discrepancies occurred
+- **Data quality verification**: Confirm that merged IEX and Nasdaq data maintains proper chronological ordering
+
+The visualizer loads processed tick and trade files from the NASDAQ pipeline output, enabling direct analysis of the same data used by Strategy Studio backtests. This creates a feedback loop where visualization insights can inform strategy parameter tuning and execution logic improvements.
+
+---
+
 # Phase 3: The Strategies
 
 ## What Is USO?
