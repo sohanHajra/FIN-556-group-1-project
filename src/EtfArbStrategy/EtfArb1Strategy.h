@@ -2,14 +2,17 @@
 
 #include <Strategy.h>
 #include <MarketModels/Instrument.h>
-#include <MarketModels/IAggrOrder.h>
-#include <MarketModels/Order.h>
-#include <MarketModels/BarEventMsg.h>
-#include <MarketModels/QuoteDataEventMsg.h>
+#include <MarketModels/IAggrOrderBook.h>
+#include <IPortfolioTracker.h>
+#include <OrderParams.h>
+#include <Order.h>
+#include <BarEventMsg.h>
+#include <QuoteEventMsg.h>
 #include <map>
 #include <vector>
 #include <string>
 #include <cmath>
+
 
 using namespace RCM::StrategyStudio;
 using namespace RCM::StrategyStudio::MarketModels;
