@@ -5,10 +5,11 @@
 #include "EtfArb1Strategy.h"
 #include <sstream> 
 #include <iostream>
-
+#include <limits> 
 
 using namespace RCM::StrategyStudio;
 using namespace RCM::StrategyStudio::MarketModels;
+using namespace RCM::StrategyStudio::Utilities;
 
 EtfArb1Strategy::EtfArb1Strategy(StrategyID strategyID, const std::string& strategyName, const std::string& groupName)
     : Strategy(strategyID, strategyName, groupName),
@@ -18,15 +19,28 @@ EtfArb1Strategy::EtfArb1Strategy(StrategyID strategyID, const std::string& strat
       entry_threshold_(0.05),                  
       position_size_(100),
       aggressiveness_(0.01) {
-
-    params().CreateParam(CreateStrategyParam("etf", CommandUserType::STRATEGY_PARAM, etf_symbol_param_));
-    params().CreateParam(CreateStrategyParam("basket", CommandUserType::STRATEGY_PARAM, basket_symbols_param_));
-    params().CreateParam(CreateStrategyParam("threshold", CommandUserType::STRATEGY_PARAM, entry_threshold_));
-    params().CreateParam(CreateStrategyParam("size", CommandUserType::STRATEGY_PARAM, position_size_));
-    params().CreateParam(CreateStrategyParam("aggressiveness", CommandUserType::STRATEGY_PARAM, aggressiveness_));
+    // Empty constructor. Params are defined in DefineStrategyParams.
 }
 
 EtfArb1Strategy::~EtfArb1Strategy() {}
+
+void EtfArb1Strategy::DefineStrategyParams() {
+    params().CreateParam(CreateStrategyParamArgs("etf", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_STRING, etf_symbol_param_));
+    params().CreateParam(CreateStrategyParamArgs("basket", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_STRING, basket_symbols_param_));
+    params().CreateParam(CreateStrategyParamArgs("threshold", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_DOUBLE, entry_threshold_));
+    params().CreateParam(CreateStrategyParamArgs("size", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_DOUBLE, position_size_));
+    params().CreateParam(CreateStrategyParamArgs("aggressiveness", STRATEGY_PARAM_TYPE_RUNTIME, VALUE_TYPE_DOUBLE, aggressiveness_));
+}
+
+void EtfArb1Strategy::OnParamChanged(StrategyParam& param) {
+    if (param.param_name() == "threshold") {
+        if (!param.Get(&entry_threshold_)) return;
+    } else if (param.param_name() == "size") {
+        if (!param.Get(&position_size_)) return;
+    } else if (param.param_name() == "aggressiveness") {
+        if (!param.Get(&aggressiveness_)) return;
+    }
+}
 
 void EtfArb1Strategy::OnResetStrategyState() {
     last_mid_prices_.clear();
@@ -34,36 +48,43 @@ void EtfArb1Strategy::OnResetStrategyState() {
 }
 
 void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegister, DateType currDate) {
-    // subscribe to ETF
-    if (instrument_manager()->TryGetInstrument(etf_symbol_param_, &etf_instrument_)) {
-        eventRegister->RegisterForInstrument(etf_instrument_);
-    } else {
-        std::cout << "CRITICAL ERROR: ETF Instrument " << etf_symbol_param_ << " not found!" << std::endl;
-    }
-
-    // subscribe to the basket/ proxy
+    // Parse the basket symbols first
     std::stringstream ss(basket_symbols_param_);
     std::string segment;
     std::vector<std::string> symbol_list;
-
     while (std::getline(ss, segment, ',')) {
         symbol_list.push_back(segment);
     }
 
-    for (const auto& sym : symbol_list) {
-        const Instrument* inst = nullptr;
-        if (instrument_manager()->TryGetInstrument(sym, &inst)) {
+    // Iterate through instruments the system knows about and find the ones that match our parameters.
+    for (auto it = instrument_begin(); it != instrument_end(); ++it) {
+        const Instrument* inst = it->second;
+        
+        // Check if this is our ETF
+        if (inst->symbol() == etf_symbol_param_) {
+            etf_instrument_ = inst;
+            // No need to manually register if passed via command line, 
+            // but if your API version requires it, you can uncomment:
             eventRegister->RegisterForInstrument(inst);
-
-            basket_weights_[inst] = 1.0 / symbol_list.size(); 
-            last_mid_prices_[inst] = 0.0;
-        } else {
-             std::cout << "ERROR: Basket Component " << sym << " not found!" << std::endl;
         }
+        
+        // Check if this is in our Basket/Proxy list
+        for (const auto& sym : symbol_list) {
+            if (inst->symbol() == sym) {
+                 basket_weights_[inst] = 1.0 / symbol_list.size(); 
+                 last_mid_prices_[inst] = 0.0;
+                 eventRegister->RegisterForInstrument(inst);
+            }
+        }
+    }
+
+    // Error checking
+    if (!etf_instrument_) {
+        std::cout << "CRITICAL ERROR: ETF Instrument " << etf_symbol_param_ << " not found! (Did you pass it in --symbols?)" << std::endl;
     }
 }
 
-void EtfArb1Strategy::OnQuote(const QuoteDataEventMsg& msg) {
+void EtfArb1Strategy::OnQuote(const QuoteEventMsg& msg) {
     const Instrument* instrument = &msg.instrument();
     const Quote& quote = msg.quote();
     
@@ -105,46 +126,37 @@ void EtfArb1Strategy::EvaluateArb() {
         }
     }
 
-    // safety check- waiting for all the data
     if (valid_components != basket_weights_.size() || fair_value <= 0) return;
 
-    // find the BEST venue, not just the first one
     int desired_position = 0;
     MarketCenterID best_venue = MARKET_CENTER_ID_IEX;
     double best_execution_price = 0.0;
     
-    // track best prices found so far
-    double highest_bid = -1.0; 
-    double lowest_ask = 9999999.0; // max min
+    double highest_bid = std::numeric_limits<double>::lowest(); 
+    double lowest_ask = std::numeric_limits<double>::max();     
 
     for (auto const& item : etf_venue_quotes_) {
         MarketCenterID venue = item.first;
         const VenuePrice& q = item.second;
 
-        // ETF is expensive 
         if (q.valid_bid && q.bid > (fair_value + entry_threshold_)) {
-            // Found a better bid?
             if (q.bid > highest_bid) {
                 highest_bid = q.bid;
                 best_venue = venue;
-                desired_position = -position_size_; // Short
+                desired_position = -position_size_; 
                 best_execution_price = q.bid;
             }
         }
-
-        // ETF is Cheap (We want to Buy at lowest Ask)
         else if (q.valid_ask && q.ask < (fair_value - entry_threshold_)) {
-            // Found a cheaper ask?
             if (q.ask < lowest_ask) {
                 lowest_ask = q.ask;
                 best_venue = venue;
-                desired_position = position_size_; // Long
+                desired_position = position_size_; 
                 best_execution_price = q.ask;
             }
         }
     }
 
-    // only execute if we found a valid opportunity
     if (desired_position != 0) {
         AdjustPosition(desired_position, best_venue, best_execution_price);
     }
@@ -156,7 +168,6 @@ void EtfArb1Strategy::AdjustPosition(int desired_position, MarketCenterID venue,
 
     if (trade_size == 0) return;
     
-    // don't stack multiple orders
     if (orders().num_working_orders(etf_instrument_) > 0) return;
 
     OrderSide side = (trade_size > 0) ? ORDER_SIDE_BUY : ORDER_SIDE_SELL;
@@ -166,7 +177,7 @@ void EtfArb1Strategy::AdjustPosition(int desired_position, MarketCenterID venue,
                          : market_price - aggressiveness_;
 
     OrderParams op(
-        etf_instrument_, 
+        *etf_instrument_,
         abs(trade_size), 
         limit_price, 
         venue, 
@@ -181,7 +192,6 @@ void EtfArb1Strategy::AdjustPosition(int desired_position, MarketCenterID venue,
 void EtfArb1Strategy::OnTrade(const TradeDataEventMsg& msg) {}
 void EtfArb1Strategy::OnBar(const BarEventMsg& msg) {}
 void EtfArb1Strategy::OnOrderUpdate(const OrderUpdateEventMsg& msg) {}
-
 
 extern "C" {
     const char* GetType() { return "EtfArb1Strategy"; }
