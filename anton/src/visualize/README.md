@@ -258,7 +258,7 @@ The visualizer uses the same Strategy Studio-compatible format as the processing
 
 ```bash
 # Step 1: Process NASDAQ data
-cd anton
+cd anton/src/ingest
 python process.py file.pcap.zst USO --both
 
 # Step 2: Combine files by day
@@ -267,7 +267,8 @@ python combine_csv.py 20250401
 # Step 3: Convert timestamps to UTC
 python utc_nasdaq_timestamp_converter.py --date 20250401
 
-# Step 4: Visualize
+# Step 4: Visualize (from anton directory)
+cd ../..
 python src/visualize/event_stream_visualizer.py --date 20250401
 ```
 

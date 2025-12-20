@@ -57,8 +57,11 @@ pip install zstandard dpkt itchfeed pandas
 The simplest way to process NASDAQ data:
 
 ```bash
-# Navigate to anton directory
-cd anton
+# Navigate to ingest directory
+cd anton/src/ingest
+
+# Or from anton directory:
+# python src/ingest/process.py file.pcap.zst USO
 
 # Process a .zst file (auto-detects date from filename)
 python process.py file.pcap.zst USO

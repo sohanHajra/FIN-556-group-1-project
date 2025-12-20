@@ -17,8 +17,12 @@ For detailed documentation, see:
 ## Quick Start
 
 ```bash
-# Process NASDAQ data
+# Process NASDAQ data (from anton directory)
+cd src/ingest
 python process.py file.pcap.zst USO
+
+# Or from anton directory:
+python src/ingest/process.py file.pcap.zst USO
 
 # Visualize processed data
 python src/visualize/event_stream_visualizer.py --date 20250401

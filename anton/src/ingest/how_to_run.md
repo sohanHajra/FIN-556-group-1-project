@@ -2,11 +2,16 @@
 
 Quick guide to process NASDAQ ITCH data files.
 
+**Note:** Run these commands from the `anton/src/ingest/` directory, or use `python src/ingest/process.py` from the `anton/` directory.
+
 ## Quick Start
 
 ### Basic Usage
 
 ```bash
+# Navigate to ingest directory
+cd anton/src/ingest
+
 # Generate depth-by-price ticks (default)
 python process.py file.pcap.zst USO
 
