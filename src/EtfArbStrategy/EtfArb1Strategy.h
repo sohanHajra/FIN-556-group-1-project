@@ -29,10 +29,14 @@ public:
     ~EtfArb1Strategy();
 
 public: 
+    
     virtual void OnResetStrategyState() override;
+    virtual void DefineStrategyParams() override; 
+    virtual void OnParamChanged(StrategyParam& param) override;
+
     virtual void RegisterForStrategyEvents(StrategyEventRegister* eventRegister, DateType currDate) override;
     
-    virtual void OnQuote(const QuoteDataEventMsg& msg) override; 
+    virtual void OnQuote(const QuoteEventMsg& msg) override; 
     
     virtual void OnTrade(const TradeDataEventMsg& msg) override;
     virtual void OnBar(const BarEventMsg& msg) override; 
@@ -45,7 +49,7 @@ private:
 private: 
     const Instrument* etf_instrument_;
     std::map<const Instrument*, double> basket_weights_; 
-    std::map<const Instrument*, double> last_mid_prices_; // Cache mid-prices of CL/Basket
+    std::map<const Instrument*, double> last_mid_prices_; 
 
     std::map<MarketCenterID, VenuePrice> etf_venue_quotes_;
     
