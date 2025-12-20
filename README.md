@@ -543,6 +543,119 @@ As market makers rebalance inventory and smart order routers enforce quote prote
 
 ---
 
+## Venue Arbitrage Strategy Variations
+
+We implemented several variations of the venue arbitrage strategy to explore different execution approaches and their market impact:
+
+### Base Strategy: `venue_arb`
+
+The base strategy executes a single leg when an arbitrage opportunity is detected:
+
+- When IEX bid ≥ NASDAQ ask + threshold: Buy on NASDAQ only
+- When NASDAQ bid ≥ IEX ask + threshold: Buy on IEX only
+
+This creates a directional position that must be closed later, exposing the strategy to price movement risk between execution and close.
+
+### Variation 1: `venue_arb_double` — Simultaneous Dual-Venue Execution
+
+This variation executes both legs simultaneously:
+
+- When IEX bid ≥ NASDAQ ask + threshold: Buy on NASDAQ **and** sell on IEX simultaneously
+- When NASDAQ bid ≥ IEX ask + threshold: Buy on IEX **and** sell on NASDAQ simultaneously
+
+**Benefits:**
+
+- Immediate market-neutral position (no directional exposure)
+- Locks in the spread at detection time
+- Reduces risk from price movement between legs
+
+**Trade-offs:**
+
+- Requires execution on both venues (higher execution risk if one leg fails)
+- More market impact (two orders instead of one)
+- Higher transaction costs
+
+### Variation 2: `venue_arb_same_venue` — Single-Venue Execution
+
+This variation executes both legs on the same venue (NASDAQ):
+
+- When opportunity detected: Executes buy and sell on NASDAQ only
+- Uses cross-venue price information but trades on one exchange
+
+**Benefits:**
+
+- Simpler execution (single venue, no cross-venue routing)
+- Potentially lower fees/rebates complexity
+- Faster execution (no cross-venue latency)
+
+**Trade-offs:**
+
+- May not capture full spread if same-venue prices differ from cross-venue quotes
+- Less true arbitrage (relies on same-venue price differences)
+- Concentrated market impact on one exchange
+
+### Variation 3: `venue_arb_aggressive` — New Opportunity Filtering
+
+This variation tracks the last opportunity and only trades when the opportunity direction changes:
+
+- Tracks `LastOpportunity` state per instrument
+- Only trades when a **new** opportunity appears (direction change)
+- Higher default aggressiveness (0.01 vs 0.0) for better fill probability
+
+**Benefits:**
+
+- Avoids repeated trades on the same opportunity
+- Reduces overtrading and transaction costs
+- Better fill rates through increased aggressiveness
+
+**Trade-offs:**
+
+- May miss opportunities that persist in the same direction
+- Higher aggressiveness reduces profit per trade (worse execution prices)
+
+### Variation 4: `venue_arb_persistent` — Confirmation Filter
+
+This variation requires multiple consecutive quotes with an opportunity before trading:
+
+- Tracks `SpreadState` with persistence count
+- Requires `persistence_count` (default: 3) consecutive quotes with opportunity
+- Filters out transient, noise-driven opportunities
+
+**Benefits:**
+
+- Reduces false signals from quote flicker
+- More conservative approach (better signal-to-noise ratio)
+- Lower transaction costs (fewer trades)
+
+**Trade-offs:**
+
+- Slower reaction time (may miss fast opportunities)
+- Requires opportunity to persist longer
+- May miss legitimate but brief opportunities
+
+### Market Impact Considerations
+
+Each variation impacts the market differently:
+
+- **Single-leg execution** (`venue_arb`): Lower immediate impact, but creates directional exposure that may require later market interaction
+- **Dual-leg execution** (`venue_arb_double`): Higher immediate impact (two orders), but market-neutral position reduces follow-up trading
+- **Same-venue execution** (`venue_arb_same_venue`): Concentrated impact on one exchange, potentially affecting that venue's order book more
+- **Aggressive execution** (`venue_arb_aggressive`): Higher fill probability but worse execution prices, potentially moving the market more per trade
+- **Persistent filtering** (`venue_arb_persistent`): Lower trading frequency reduces overall market impact, but each trade may be larger
+
+### Choosing the Right Variation
+
+The choice depends on:
+
+- **Market conditions**: Fast-moving vs. stable markets
+- **Execution capabilities**: Ability to execute on multiple venues simultaneously
+- **Risk tolerance**: Willingness to hold directional positions
+- **Market impact sensitivity**: Need to minimize footprint vs. maximize fill probability
+
+These variations enable systematic testing of different execution strategies and their effects on profitability, market impact, and risk exposure.
+
+---
+
 ## Practical Constraints
 
 This is microstructure-driven arbitrage, not risk-free:
