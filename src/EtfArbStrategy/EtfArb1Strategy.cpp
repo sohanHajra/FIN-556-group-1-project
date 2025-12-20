@@ -107,7 +107,7 @@ void EtfArb1Strategy::EvaluateArb() {
     }
 
     // safety check- waiting for all the data
-    if (valid_components < basket_weights_.size() || fair_value <= 0) return;
+    if (valid_components != basket_weights_.size() || fair_value <= 0) return;
 
     // find the BEST venue, not just the first one
     int desired_position = 0;
@@ -155,6 +155,10 @@ void EtfArb1Strategy::AdjustPosition(int desired_position, MarketCenterID venue,
     int current_position = portfolio().position(etf_instrument_);
     int trade_size = desired_position - current_position;
 
+    if (trade_size == 0) return;
+    
+    // don't stack multiple orders
+    if (orders().num_working_orders(etf_instrument_) > 0) return;
 
     OrderSide side = (trade_size > 0) ? ORDER_SIDE_BUY : ORDER_SIDE_SELL;
     
