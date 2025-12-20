@@ -789,6 +789,72 @@ Positions are constructed by going **long the undervalued leg** and **short the 
 This is best viewed as **microstructure-driven arbitrage anchored to ETF mechanics**, rather than risk-free arbitrage.
 
 ---
+# ETF Arbitrage Strategy: `EtfArb1Strategy`
+
+We designed `EtfArb1Strategy` as a **unified, high-performance arbitrage engine**. Instead of maintaining separate files for different logic (e.g., `EtfArb_Aggressive`, `EtfArb_Skew`), we integrated advanced microstructure features directly into the core decision loop.
+
+This single strategy file (`EtfArb1Strategy.cpp`) handles price discovery, risk management, and execution simultaneously.
+
+## Core Architecture
+
+The strategy operates on a simple principle: **Fair Value Convergence**.
+* **Inputs:** It subscribes to an ETF (e.g., `USO`) and a basket of underlying instruments (e.g., `CL` Futures).
+* **Math:** Calculates Real-Time NAV: $FairValue = \sum(Price_{Basket} \times Weight)$.
+* **Trigger:** Executes when the ETF price deviates from Fair Value by more than a `threshold`.
+
+---
+
+## Integrated Logic Modules (All in One File)
+
+We engineered four advanced behaviors directly into the main execution pipeline. These are always active or tunable via runtime parameters.
+
+### 1. Smart Order Routing (Built-in BestEx)
+* **The Code:** Inside `EvaluateArb`, the strategy scans **every** active quote from every connected exchange (NASDAQ, IEX, NYSE, etc.) instead of hardcoding a target.
+* **How it works:**
+    * It tracks `etf_venue_quotes_` for all market centers.
+    * It automatically routes the order to the venue with the **Highest Bid** (when selling) or **Lowest Ask** (when buying).
+* **Result:** We capture price improvement and liquidity from fragmented markets without needing complex routing configurations.
+
+### 2. Inventory Skewing (Risk Management Layer)
+* **The Code:** We calculate `skew = current_position * inventory_skew_` before checking entry signals.
+* **How it works:**
+    * **Long Position:** The internal "Fair Value" is lowered. The strategy becomes aggressive in selling and reluctant to buy.
+    * **Short Position:** The internal "Fair Value" is raised. The strategy becomes aggressive in buying (covering).
+* **Result:** The strategy naturally "brakes" as risk increases, preventing it from accumulating massive positions during a market crash.
+
+### 3. Adaptive Aggressiveness (Dynamic Execution)
+* **The Code:** Inside `AdjustPosition`, we check the urgency of the trade.
+* **How it works:**
+    * **Normal Mode:** Adds a standard `aggressiveness` (e.g., 1 cent) to Limit Orders to capture the spread.
+    * **Urgent Mode:** If `abs(position) > 300`, it **doubles** the aggressiveness to cross the spread and force an exit.
+* **Result:** We prioritize profit margins during calm markets but prioritize **risk reduction** during high-exposure events.
+
+### 4. Structural Proxy Support (Multi-Asset Capable)
+* **The Code:** The `basket_weights_` logic handles diverse asset classes.
+* **How it works:**
+    * By setting specific parameters (e.g., `hedge_ratio` implicitly via basket weights), the strategy can trade **Equities vs. Futures** (USO vs CL) just as easily as **Equities vs. Equities** (SPY vs AAPL).
+* **Result:** A single codebase supports both statistical arbitrage and structural ETF arbitrage.
+
+---
+
+## Logic Flow Summary
+
+Every time a new quote arrives, the `EtfArb1Strategy` performs this atomic sequence:
+
+1.  **Update Data:** Refreshes the price cache for the ETF and the Basket.
+2.  **Calculate Fair Value:** Computes the theoretical price of the ETF.
+3.  **Apply Skew:** Adjusts Fair Value based on current `portfolio()` risk.
+4.  **Scan Venues:** Loops through IEX, NASDAQ, etc., to find the single best price.
+5.  **Check Thresholds:** Compares `BestPrice` vs `SkewedFairValue`.
+6.  **Execute:** Sends a Limit Order with **Dynamic Aggressiveness** to the specific best venue.
+
+## Architectural Advantages
+
+* **Unified Maintenance:** All logic resides in a single, cohesive engine. Improvements to core features (like safety checks or pricing logic) immediately benefit all execution modes.
+* **Dynamic Configuration:** Strategy behavior is driven by runtime parameters rather than compile-time flags. This allows for rapid iteration and testing of different trading styles (e.g., Passive vs. Aggressive) using a single deployed binary.
+* **Holistic Execution:** By integrating pricing, routing, and risk management into one loop, the strategy makes execution decisions that are fully context-aware, balancing theoretical fair value against real-time market liquidity and inventory constraints.
+
+---
 
 ## Key Technical Challenges & Solutions
 
