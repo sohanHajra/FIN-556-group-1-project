@@ -60,9 +60,7 @@ private:
     const Instrument* etf_instrument_;
     std::map<const Instrument*, double> basket_weights_; 
     std::map<const Instrument*, double> last_mid_prices_; 
-
     std::map<MarketCenterID, VenuePrice> etf_venue_quotes_;
-    
     std::string etf_symbol_param_;      
     std::string basket_symbols_param_;  
     double entry_threshold_;            
