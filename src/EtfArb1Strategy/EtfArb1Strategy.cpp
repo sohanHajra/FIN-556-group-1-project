@@ -87,6 +87,7 @@ void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegi
     if (!etf_instrument_) {
         std::cout << "CRITICAL ERROR: ETF Instrument " << etf_symbol_param_ << " not found! (Did you pass it in --symbols?)" << std::endl;
     }
+
     //error check to see we found all basket components
     if (basket_weights_.size() != symbol_list.size()) {
         std::cout << "CRITICAL ERROR: Expected " << symbol_list.size() 
@@ -142,6 +143,7 @@ void EtfArb1Strategy::EvaluateArb() {
     //inventory skew
     // if long, then skew is +, fair_value drops, so we sell sooner
     // if short, then skew is -, fair_value increases, so we buy sooner
+    
     int current_position = portfolio().position(etf_instrument_);
     double skew = current_position * inventory_skew_;
     double skewed_fair_value = fair_value - skew;
