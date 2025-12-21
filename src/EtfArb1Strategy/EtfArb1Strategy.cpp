@@ -87,6 +87,12 @@ void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegi
     if (!etf_instrument_) {
         std::cout << "CRITICAL ERROR: ETF Instrument " << etf_symbol_param_ << " not found! (Did you pass it in --symbols?)" << std::endl;
     }
+    //error check to see we found all basket components
+    if (basket_weights_.size() != symbol_list.size()) {
+        std::cout << "CRITICAL ERROR: Expected " << symbol_list.size() 
+                  << " basket instruments, but found " << basket_weights_.size() 
+                  << ". Check your symbol names!" << std::endl;
+    }
 }
 
 void EtfArb1Strategy::OnQuote(const QuoteEventMsg& msg) {
