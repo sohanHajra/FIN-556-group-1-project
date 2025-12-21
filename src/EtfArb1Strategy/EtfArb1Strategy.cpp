@@ -5,7 +5,8 @@
 #include "EtfArb1Strategy.h"
 #include <sstream> 
 #include <iostream>
-#include <limits> 
+#include <limits>
+#include <cstring> 
 
 using namespace RCM::StrategyStudio;
 using namespace RCM::StrategyStudio::MarketModels;
@@ -18,7 +19,7 @@ EtfArb1Strategy::EtfArb1Strategy(StrategyID strategyID, const std::string& strat
       basket_symbols_param_("CL"),             
       entry_threshold_(0.05),                  
       position_size_(100),
-      aggressiveness_(0.01)
+      aggressiveness_(0.01),
       inventory_skew_(0.0001) {
 }
 
