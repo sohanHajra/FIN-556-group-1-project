@@ -172,6 +172,11 @@ void EtfArb1Strategy::EvaluateArb() {
     if (desired_position != 0) {
         AdjustPosition(desired_position, best_venue, best_execution_price);
     }
+
+    else if (portfolio().position(etf_instrument_) != 0) {
+         // We need a price to exit at.
+         
+
 }
 
 void EtfArb1Strategy::AdjustPosition(int desired_position, MarketCenterID venue, double market_price) {
