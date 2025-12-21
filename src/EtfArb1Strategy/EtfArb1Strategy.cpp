@@ -97,6 +97,8 @@ void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegi
 }
 
 void EtfArb1Strategy::OnQuote(const QuoteEventMsg& msg) {
+    if (!etf_instrument_) return;
+
     const Instrument* instrument = &msg.instrument();
     const Quote& quote = msg.quote();
     
@@ -122,6 +124,9 @@ void EtfArb1Strategy::OnQuote(const QuoteEventMsg& msg) {
             last_mid_prices_[instrument] = mid;
         }
     }
+    else{
+        return;
+    }
 
     EvaluateArb();
 }
@@ -143,7 +148,7 @@ void EtfArb1Strategy::EvaluateArb() {
     //inventory skew
     // if long, then skew is +, fair_value drops, so we sell sooner
     // if short, then skew is -, fair_value increases, so we buy sooner
-    
+
     int current_position = portfolio().position(etf_instrument_);
     double skew = current_position * inventory_skew_;
     double skewed_fair_value = fair_value - skew;
