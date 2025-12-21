@@ -10,7 +10,7 @@ output_file="tick.txt"
 first_file=true
 
 # Loop through each txt file in the current directory
-for file in *.txt; do
+for file in $(ls *.txt | sort); do
     if [ "$first_file" = true ]; then
         # For the first file, just append it without modification
         cat "$file" >> "$output_file"
