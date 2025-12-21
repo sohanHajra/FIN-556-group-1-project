@@ -40,6 +40,39 @@ group_01_project/
 
 ---
 
+## Quick Start: Essential Prerequisites
+
+**⚠️ IMPORTANT:** Before using any scripts, you must complete these one-time setup steps:
+
+### 1. Clone the Base Strategy Repository
+
+You need the source strategy template before cloning/customizing your own strategies:
+
+```bash
+cd ~/ss/sdk/RCM/StrategyStudio/examples/strategies/
+git clone https://oauth2:glpat-SoENCtAH9Kv7y86xNDCa@gitlab.engr.illinois.edu/shared_code/example_trading_strategies/dia_index_arb_strategy.git
+```
+
+This gives you a clean reference strategy (`dia_index_arb_strategy`) to work from.
+
+### 2. Create Runtime Directory and Fix Makefile Paths
+
+The default Makefiles have hardcoded paths that will cause permission errors. Run the fix script:
+
+```bash
+# From the project root
+./scripts/fix_makefile_paths.sh
+```
+
+This script:
+- Creates the runtime directory: `$HOME/ss/bt/strategies_dlls`
+- Fixes all Makefiles to use `$(HOME)` instead of hardcoded `/home/vagrant` paths
+- Creates backups before modifying files
+
+**That's it!** After these two steps, you're ready to use the rest of the scripts.
+
+---
+
 # Before starting
 
 Make sure that you environment variables are setup! Some scripts rely on environment variables and user-specific paths.
@@ -540,5 +573,108 @@ sleep 3
 * Scripts are intentionally simple and explicit
 * If something breaks, inspect logs first
 * Do not manually edit StrategyStudio SDK files unless debugging
+
+---
+
+## Appendix: Understanding the Makefile Path Issue
+
+### The Problem
+
+Strategy Studio builds `.so` strategy binaries, and `make copy_strategy` copies the `.so` into a runtime directory. However, the default Makefile from cloned strategies contains a **hardcoded path**:
+
+```makefile
+cp *.so /home/vagrant/ss/bt/strategies_dlls/.
+```
+
+If you're not the `vagrant` user, this causes a **permission denied** error. The build succeeds, but the copy step fails silently, which prevents Strategy Studio from loading your strategy.
+
+**Symptoms:**
+- Build completes successfully
+- `make copy_strategy` fails with "permission denied"
+- Strategy doesn't appear in Strategy Studio
+- No `.so` file in the runtime directory
+
+### The Solution
+
+**Automated Fix (Recommended):**
+
+Run the fix script to automatically update all Makefiles:
+
+```bash
+# Fix all strategies
+./scripts/fix_makefile_paths.sh
+
+# Or fix a specific strategy
+./scripts/fix_makefile_paths.sh --strategy venue_arb
+```
+
+This script:
+- Replaces `/home/vagrant/ss/bt/strategies_dlls` with `$(HOME)/ss/bt/strategies_dlls`
+- Creates the runtime directory if it doesn't exist: `$HOME/ss/bt/strategies_dlls`
+- Creates backups (`.bak` files) of Makefiles before modifying them
+- Reports which strategies were fixed
+
+**Manual Fix (Alternative):**
+
+If you prefer to fix manually:
+
+1. Navigate to your strategy directory:
+   ```bash
+   cd ~/ss/sdk/RCM/StrategyStudio/examples/strategies/<strategy_name>
+   ```
+
+2. Edit the Makefile:
+   ```bash
+   nano Makefile
+   ```
+
+3. Find the `copy_strategy` target and replace:
+   ```makefile
+   # OLD (hardcoded - causes permission errors):
+   cp *.so /home/vagrant/ss/bt/strategies_dlls/.
+   
+   # NEW (portable - works for any user):
+   cp *.so $(HOME)/ss/bt/strategies_dlls/.
+   ```
+
+4. Ensure the directory exists:
+   ```bash
+   mkdir -p ~/ss/bt/strategies_dlls
+   ```
+
+### Verify the Fix
+
+After running the patch script, verify everything is correct:
+
+```bash
+# Check that the runtime directory exists
+ls -ld ~/ss/bt/strategies_dlls
+
+# Check a Makefile was fixed (should show $(HOME), not /home/vagrant)
+grep "strategies_dlls" ~/ss/sdk/RCM/StrategyStudio/examples/strategies/venue_arb/Makefile
+```
+
+You should see `$(HOME)/ss/bt/strategies_dlls` in the Makefile, not `/home/vagrant/ss/bt/strategies_dlls`.
+
+### When to Run This
+
+- **Before cloning your first strategy** (if you want to fix the template)
+- **After cloning a strategy** (recommended - fix it immediately)
+- **If you get "permission denied" errors** during `make copy_strategy`
+- **After pulling updates** that might have reset Makefiles
+
+**Note:** The patch script is safe to run multiple times - it only fixes Makefiles that need fixing and creates backups.
+
+### Mental Model
+
+Understanding the workflow:
+
+1. **Git clone** → Gets raw strategy source (`dia_index_arb_strategy`)
+2. **`clone_strategy.sh`** → Creates a new named strategy (e.g., `venue_arb`)
+3. **Makefile copy path** → MUST point to your user's `strategies_dlls` directory
+4. **`deploy_strategy.sh`** → Best for repo-based workflows (edits in `src/`)
+5. **`build_copy_strategy.sh`** → Best for direct SDK edits
+
+Once the `.so` file lands in `~/ss/bt/strategies_dlls`, Strategy Studio can see and load it ✅
 
 ---
