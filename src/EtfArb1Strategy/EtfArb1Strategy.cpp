@@ -225,7 +225,7 @@ extern "C" {
         if (std::strcmp(strategyType, GetType()) == 0) {
             // Need to use conversion operator on object not pointer
             // this is to invoke IStrategy* operator
-            return new EtfArb1Strategy(strategyID, strategyName, groupName);
+            return *(new EtfArb1Strategy(strategyID, strategyName, groupName));
         }
         return nullptr;
     }
