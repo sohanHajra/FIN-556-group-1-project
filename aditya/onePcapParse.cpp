@@ -69,13 +69,7 @@ void template46(char* buffer, uint64_t blocklength ,uint64_t bufferlength,uint64
                         message << std::put_time(tm_info, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(6) << std::setfill('0') << timeUSec << ","<< std::put_time(tm_info2, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(9) << std::setfill('0') << ns<<",,P,CME," << "2" << "," << mantissa << ","<< mbofd.mDEntrySize() << "," <<mbofd.numberOfOrders()<< "," << "0" <<"\n";
                     }
                 }
-                // else if(mbofd.securityID()==423318){
-                //     double mantissa = mbofd.mDEntryPx().mantissa() * 1e-9;
-                //     message << mbofd.orderID() << "," << mbofd.mDOrderPriority() << "," << mantissa << "," << mbofd.mDDisplayQty() << "," << "CLK5" << "," << mbofd.mDUpdateAction() << "," << mbofd.mDEntryType()<<"\n";;
-                // }
-
             }
-            // message <<",,P,CME,"<< temp2;
         }
 struct PcapGlobalHeader {
     uint32_t magic_number;
@@ -105,7 +99,6 @@ struct packet{
 #pragma pack(pop)
 
 int main(int argc, char* argv[]) {
-    // const char* filename = "dc3-glbx-a-20250401T001000.pcap";
     const char* filename = argv[1];
 
 
@@ -144,21 +137,9 @@ int main(int argc, char* argv[]) {
             break;
         }
 
-        ++packetCount;
-
-        // Write packet info to output.txt
-        // out << "Packet #" << packetCount
-        //     << " ts=" << ph.ts_sec << "." << ph.ts_usec
-        //     << " incl_len=" << ph.incl_len
-        //     << " orig_len=" << ph.orig_len << "\n";
+        packetCount++;
 
         std::size_t showLen = std::min<std::size_t>(ph.incl_len, 16);
-        // out << "  First " << showLen << " bytes: ";
-        // for (std::size_t i = 0; i < showLen; ++i) {
-        //     char buf[4];
-        //     std::snprintf(buf, sizeof(buf), "%02x", packet[i]);
-        //     out << buf << ' ';
-        // }
         uint16_t version = (uint16_t(uint8_t(packet[63]))<<8) | (uint16_t(uint8_t(packet[62])));
         uint16_t messageSize = (uint16_t(uint8_t(packet[55]))<<8) | (uint16_t(uint8_t(packet[54])));;
         char* buf = reinterpret_cast<char*>(packet.data() + 54);
@@ -172,10 +153,6 @@ int main(int argc, char* argv[]) {
             content.str("");
             content.clear();
         }
-        // out << "MessageSize " << messageSize << " " << temp.blockLength() << " " << temp.templateId() << " " << temp.schemaId() << " " << temp.version() << endl;
-        // out << "\n";
     }
-
-    // out << "Done. Total packets: " << packetCount << std::endl;
     return 0;
 }
