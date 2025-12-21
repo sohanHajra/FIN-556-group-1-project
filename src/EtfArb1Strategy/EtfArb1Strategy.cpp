@@ -81,6 +81,28 @@ void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegi
     //     symbol_list.push_back(segment);
     // }
 
+    while (std::getline(ss, segment, ',')) {
+
+        // to get rid of whitespace from user input
+        size_t first = segment.find_first_not_of(' ');
+        
+        if (std::string::npos == first) continue;
+        size_t last = segment.find_last_not_of(' ');
+        std::string clean_symbol = segment.substr(first, (last - first + 1));
+
+        auto basket_it = instrument_find(clean_symbol);
+
+        if (basket_it != instrument_end()) {
+            const Instrument* inst = basket_it->second;
+            basket_weights_[inst] = 1.0; 
+            last_mid_prices_[inst] = 0.0;
+            std::cout << "SUCCESS: Found Basket Component: " << inst->symbol() << std::endl;
+        } else {
+            std::cout << "CRITICAL ERROR: Could not find Basket symbol: '" << clean_symbol << "'" << std::endl;
+        }
+
+    }
+
     
 
     // Iterate through instruments the system knows about and find the ones that match our parameters.
