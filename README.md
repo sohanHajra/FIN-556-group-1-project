@@ -13,6 +13,7 @@
   - [The Venue Arbitrage Strategy](#the-venue-arbitrage-strategy)
   - [Venue Arbitrage Strategy Variations](#venue-arbitrage-strategy-variations)
   - [ETF Arbitrage: Core Mechanism and Trading Intuition](#etf-arbitrage-core-mechanism-and-trading-intuition)
+  - [ETF Arbitrage Strategy: `EtfArb1Strategy`](#etf-arbitrage-strategy-etfarb1strategy)
 - [Key Technical Challenges & Solutions](#key-technical-challenges--solutions)
 - [Results and Performance](#results-and-performance)
 - [Conclusion and Summary](#conclusion-and-summary)
