@@ -3,14 +3,16 @@
 # Directory containing .zst files
 INPUT_DIR="./data"
 
-# Number of parallel processes (adjust to your CPU cores)
+# Number of parallel processes
 PARALLEL_JOBS=2
 
 # Time range
 START_TIME="000000"
 END_TIME="120000"
 
-ulimit -v $((32 * 1024 * 1024))  # 32 GB in KB
+#limit RAM usage(in kbs)
+ulimit -v $((32 * 1024 * 1024))
+
 # Function to process a single file
 process_file() {
     local zst_file="$1"
@@ -42,7 +44,7 @@ process_file() {
 
     echo "Processing $base_filename -> $output_filename"
 
-    # Call your C++ parser
+    # Call the C++ parser
     ./a.out "$zst_file" "$output_filename"
 
     if [ $? -eq 0 ]; then
