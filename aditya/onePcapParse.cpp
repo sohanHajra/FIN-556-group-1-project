@@ -12,7 +12,6 @@
 #include <iomanip>
 #include <string>
 #include <ctime>
-// #include "DebugUtil.h"
 #include "MessageHeader.h"
 #include "MDInstrumentDefinitionSpread56.h"
 #include "MDIncrementalRefreshOrderBook47.h"
@@ -99,8 +98,11 @@ struct packet{
 #pragma pack(pop)
 
 int main(int argc, char* argv[]) {
+    if(argc < 3){
+        cout << "Need 3 args ./a.out [pcapFile] [outputFile]" << endl;
+        return 1;
+    }
     const char* filename = argv[1];
-
 
     std::ifstream file(filename, std::ios::binary);
     if (!file) {
