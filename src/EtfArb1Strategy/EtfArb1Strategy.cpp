@@ -177,9 +177,12 @@ void EtfArb1Strategy::EvaluateArb() {
     else if (portfolio().position(etf_instrument_) != 0) { 
          // We need a price to exit at.
          // For simplicity we will use the best available opposite quote
+
          if (!etf_venue_quotes_.empty()) {
+            // Just pick the first venue for now, or find the best one
             MarketCenterID venue = etf_venue_quotes_.begin()->first;
-            
+            double price = (portfolio().position(etf_instrument_) > 0) ? etf_venue_quotes_[venue].bid : etf_venue_quotes_[venue].ask;
+
 
 }
 
