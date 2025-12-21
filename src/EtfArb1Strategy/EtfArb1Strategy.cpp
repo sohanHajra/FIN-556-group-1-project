@@ -58,8 +58,18 @@ void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegi
     basket_weights_.clear();
     last_mid_prices_.clear();
 
-    // finding the
+    // finding the instruments
+    auto etf_it = instrument_find(etf_symbol_param_);
 
+    if (etf_it != instrument_end()) {
+        etf_instrument_ = etf_it->second;
+        std::cout << "SUCCESS: Found ETF Instrument: " << etf_instrument_->symbol() << std::endl;
+    } else {
+        std::cout << "CRITICAL ERROR: Could not find ETF symbol: '" << etf_symbol_param_ << "'" << std::endl;
+        // print all available instruments to debug
+        for (auto it = instrument_begin(); it != instrument_end(); ++it) 
+           std::cout << "Available: " << it->second->symbol() << std::endl;
+    }
 
 
     // Parse the basket symbols first
