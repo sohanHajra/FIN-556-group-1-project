@@ -68,6 +68,7 @@ private:
     double entry_threshold_;            
     double position_size_;      
     double aggressiveness_; 
+    double inventory_skew_;
 };
 
 #endif
