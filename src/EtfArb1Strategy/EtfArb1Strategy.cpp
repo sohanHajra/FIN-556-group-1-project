@@ -179,6 +179,7 @@ void EtfArb1Strategy::EvaluateArb() {
          // For simplicity we will use the best available opposite quote
          if (!etf_venue_quotes_.empty()) {
             MarketCenterID venue = etf_venue_quotes_.begin()->first;
+            
 
 }
 
