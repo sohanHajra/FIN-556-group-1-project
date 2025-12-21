@@ -53,6 +53,15 @@ void EtfArb1Strategy::OnResetStrategyState() {
 }
 
 void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegister, DateType currDate) {
+    // resetting pointers
+    etf_instrument_ = nullptr;
+    basket_weights_.clear();
+    last_mid_prices_.clear();
+
+    // finding the
+
+
+
     // Parse the basket symbols first
     std::stringstream ss(basket_symbols_param_);
     std::string segment;
