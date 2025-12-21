@@ -75,10 +75,13 @@ void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegi
     // Parse the basket symbols first
     std::stringstream ss(basket_symbols_param_);
     std::string segment;
-    std::vector<std::string> symbol_list;
-    while (std::getline(ss, segment, ',')) {
-        symbol_list.push_back(segment);
-    }
+
+    // std::vector<std::string> symbol_list;
+    // while (std::getline(ss, segment, ',')) {
+    //     symbol_list.push_back(segment);
+    // }
+
+    
 
     // Iterate through instruments the system knows about and find the ones that match our parameters.
     for (auto it = instrument_begin(); it != instrument_end(); ++it) {
