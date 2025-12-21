@@ -62,86 +62,36 @@ void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegi
     std::cout << "--- END DEBUG LIST ---" << std::endl;
 
 
-    // resetting pointers
-    etf_instrument_ = nullptr;
-    basket_weights_.clear();
-    last_mid_prices_.clear();
-
-    // finding the instruments
-    auto etf_it = instrument_find(etf_symbol_param_);
-
-    if (etf_it != instrument_end()) {
-        etf_instrument_ = etf_it->second;
-        std::cout << "SUCCESS: Found ETF Instrument: " << etf_instrument_->symbol() << std::endl;
-    } else {
-        std::cout << "CRITICAL ERROR: Could not find ETF symbol: '" << etf_symbol_param_ << "'" << std::endl;
-        // print all available instruments to debug
-        for (auto it = instrument_begin(); it != instrument_end(); ++it) 
-           std::cout << "Available: " << it->second->symbol() << std::endl;
-    }
-
-
     // Parse the basket symbols first
     std::stringstream ss(basket_symbols_param_);
     std::string segment;
-
-    // std::vector<std::string> symbol_list;
-    // while (std::getline(ss, segment, ',')) {
-    //     symbol_list.push_back(segment);
-    // }
-
+    std::vector<std::string> symbol_list;
     while (std::getline(ss, segment, ',')) {
-
-        // to get rid of whitespace from user input
-        size_t first = segment.find_first_not_of(' ');
-        
-        if (std::string::npos == first) continue;
-        size_t last = segment.find_last_not_of(' ');
-        std::string clean_symbol = segment.substr(first, (last - first + 1));
-
-        auto basket_it = instrument_find(clean_symbol);
-
-        if (basket_it != instrument_end()) {
-            const Instrument* inst = basket_it->second;
-            basket_weights_[inst] = 1.0; 
-            last_mid_prices_[inst] = 0.0;
-            std::cout << "SUCCESS: Found Basket Component: " << inst->symbol() << std::endl;
-        } else {
-            std::cout << "CRITICAL ERROR: Could not find Basket symbol: '" << clean_symbol << "'" << std::endl;
-        }
-
-    }
-
-    if (!basket_weights_.empty()) {
-        double weight = 1.0 / basket_weights_.size();
-        for (auto& item : basket_weights_) {
-            item.second = weight;
-        }
+        symbol_list.push_back(segment);
     }
 
 
-
-    // // Iterate through instruments the system knows about and find the ones that match our parameters.
-    // for (auto it = instrument_begin(); it != instrument_end(); ++it) {
-    //     const Instrument* inst = it->second;
+    // Iterate through instruments the system knows about and find the ones that match our parameters.
+    for (auto it = instrument_begin(); it != instrument_end(); ++it) {
+        const Instrument* inst = it->second;
         
-    //     // Check if this is our ETF
-    //     if (inst->symbol() == etf_symbol_param_) {
-    //         etf_instrument_ = inst;
-    //         // No need to manually register if passed via command line, 
-    //         // but if your API version requires it, you can uncomment:
-    //         // eventRegister->RegisterInstrument(inst);
-    //     }
+        // Check if this is our ETF
+        if (inst->symbol() == etf_symbol_param_) {
+            etf_instrument_ = inst;
+            // No need to manually register if passed via command line, 
+            // but if your API version requires it, you can uncomment:
+            // eventRegister->RegisterInstrument(inst);
+        }
         
-    //     // Check if this is in our Basket/Proxy list
-    //     for (const auto& sym : symbol_list) {
-    //         if (inst->symbol() == sym) {
-    //              basket_weights_[inst] = 1.0 / symbol_list.size(); 
-    //              last_mid_prices_[inst] = 0.0;
-    //             //  eventRegister->RegisterInstrument(inst);
-    //         }
-    //     }
-    // }
+        // Check if this is in our Basket/Proxy list
+        for (const auto& sym : symbol_list) {
+            if (inst->symbol() == sym) {
+                 basket_weights_[inst] = 1.0 / symbol_list.size(); 
+                 last_mid_prices_[inst] = 0.0;
+                //  eventRegister->RegisterInstrument(inst);
+            }
+        }
+    }
 
 
     // Error checking
@@ -150,8 +100,8 @@ void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegi
     }
 
     //error check to see we found all basket components
-    if (basket_weights_.empty()) {
-        std::cout << "CRITICAL ERROR: Expected " 
+    if (basket_weights_.size() != symbol_list.size()) {
+        std::cout << "CRITICAL ERROR: Expected " << symbol_list.size()
                   << " basket instruments, but found " << basket_weights_.size() 
                   << ". Check your symbol names!" << std::endl;
     }
