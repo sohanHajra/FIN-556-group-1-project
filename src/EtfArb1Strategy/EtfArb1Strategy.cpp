@@ -182,7 +182,9 @@ void EtfArb1Strategy::EvaluateArb() {
             // Just pick the first venue for now, or find the best one
             MarketCenterID venue = etf_venue_quotes_.begin()->first;
             double price = (portfolio().position(etf_instrument_) > 0) ? etf_venue_quotes_[venue].bid : etf_venue_quotes_[venue].ask;
-
+            AdjustPosition(0, venue, price);
+         }
+    }
 
 }
 
