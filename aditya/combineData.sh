@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Define the output file
-output_file="tick_CL_20250401.txt"
+output_file="tick.txt"
 
 # Clear the output file if it already exists
 > "$output_file"
