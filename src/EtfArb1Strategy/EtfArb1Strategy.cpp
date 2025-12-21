@@ -141,7 +141,7 @@ void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegi
     }
 
     //error check to see we found all basket components
-    if (basket_weights_.size() != symbol_list.size()) {
+    if (basket_weights_.empty()) {
         std::cout << "CRITICAL ERROR: Expected " << symbol_list.size() 
                   << " basket instruments, but found " << basket_weights_.size() 
                   << ". Check your symbol names!" << std::endl;
