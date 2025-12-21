@@ -53,6 +53,15 @@ void EtfArb1Strategy::OnResetStrategyState() {
 }
 
 void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegister, DateType currDate) {
+
+    //Debug
+    std::cout << "--- DEBUG: LISTING ALL INSTRUMENTS ---" << std::endl;
+    for (auto it = instrument_begin(); it != instrument_end(); ++it) {
+        std::cout << "Found Instrument: [" << it->second->symbol() << "]" << std::endl;
+    }
+    std::cout << "--- END DEBUG LIST ---" << std::endl;
+
+
     // resetting pointers
     etf_instrument_ = nullptr;
     basket_weights_.clear();
