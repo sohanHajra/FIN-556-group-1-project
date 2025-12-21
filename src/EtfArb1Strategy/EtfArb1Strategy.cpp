@@ -103,29 +103,37 @@ void EtfArb1Strategy::RegisterForStrategyEvents(StrategyEventRegister* eventRegi
 
     }
 
-    
-
-    // Iterate through instruments the system knows about and find the ones that match our parameters.
-    for (auto it = instrument_begin(); it != instrument_end(); ++it) {
-        const Instrument* inst = it->second;
-        
-        // Check if this is our ETF
-        if (inst->symbol() == etf_symbol_param_) {
-            etf_instrument_ = inst;
-            // No need to manually register if passed via command line, 
-            // but if your API version requires it, you can uncomment:
-            // eventRegister->RegisterInstrument(inst);
-        }
-        
-        // Check if this is in our Basket/Proxy list
-        for (const auto& sym : symbol_list) {
-            if (inst->symbol() == sym) {
-                 basket_weights_[inst] = 1.0 / symbol_list.size(); 
-                 last_mid_prices_[inst] = 0.0;
-                //  eventRegister->RegisterInstrument(inst);
-            }
+    if (!basket_weights_.empty()) {
+        double weight = 1.0 / basket_weights_.size();
+        for (auto& item : basket_weights_) {
+            item.second = weight;
         }
     }
+
+
+
+    // // Iterate through instruments the system knows about and find the ones that match our parameters.
+    // for (auto it = instrument_begin(); it != instrument_end(); ++it) {
+    //     const Instrument* inst = it->second;
+        
+    //     // Check if this is our ETF
+    //     if (inst->symbol() == etf_symbol_param_) {
+    //         etf_instrument_ = inst;
+    //         // No need to manually register if passed via command line, 
+    //         // but if your API version requires it, you can uncomment:
+    //         // eventRegister->RegisterInstrument(inst);
+    //     }
+        
+    //     // Check if this is in our Basket/Proxy list
+    //     for (const auto& sym : symbol_list) {
+    //         if (inst->symbol() == sym) {
+    //              basket_weights_[inst] = 1.0 / symbol_list.size(); 
+    //              last_mid_prices_[inst] = 0.0;
+    //             //  eventRegister->RegisterInstrument(inst);
+    //         }
+    //     }
+    // }
+
 
     // Error checking
     if (!etf_instrument_) {
