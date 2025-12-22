@@ -18,7 +18,7 @@ venue_arb_aggressive::venue_arb_aggressive(StrategyID strategyID,
       arb_threshold_(0.01),
       aggressiveness_(0.01),  // Higher default aggressiveness for better fills
       position_size_(100),
-      debug_(true)
+      debug_(false)
 {
 
 }
