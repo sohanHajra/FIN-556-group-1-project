@@ -125,25 +125,27 @@ void venue_arb_aggressive::EvaluateArb(const Instrument* inst)
     
     // Determine current opportunity
     int current_direction = 0;
-    int desired_position = 0;
+    int trade_direction = 0;  // 1 = buy, -1 = sell
     MarketCenterID venue = MARKET_CENTER_ID_NASDAQ;
 
     if (i.bid >= n.ask + arb_threshold_) {
         // Buy on NASDAQ (cheaper), sell on IEX (more expensive)
         current_direction = 1;
-        desired_position = position_size_;
+        trade_direction = 1;  // Buy
         venue = MARKET_CENTER_ID_NASDAQ;
     }
     else if (n.bid >= i.ask + arb_threshold_) {
         // Buy on IEX (cheaper), sell on NASDAQ (more expensive)
         current_direction = -1;
-        desired_position = position_size_;
+        trade_direction = 1;  // Buy
         venue = MARKET_CENTER_ID_IEX;
     }
 
-    // Check if this is a NEW opportunity
-    bool is_new_opportunity = false;
+    // Track opportunity state for debugging
+    bool opportunity_exists = (current_direction != 0);
+    bool direction_changed = (current_direction != last_opp.direction);
     
+    // Update tracking
     if (current_direction == 0) {
         // No opportunity exists - reset tracking
         if (last_opp.direction != 0) {
@@ -152,17 +154,12 @@ void venue_arb_aggressive::EvaluateArb(const Instrument* inst)
         }
     }
     else {
-        // Opportunity exists
-        if (current_direction != last_opp.direction) {
-            // Different opportunity OR opportunity just appeared (last was 0)
-            is_new_opportunity = true;
-            last_opp.direction = current_direction;
-        }
-        // If same direction as last, don't trade (already traded on this opportunity)
+        // Opportunity exists - update tracking
+        last_opp.direction = current_direction;
     }
 
     // Debug output
-    if (debug_ || desired_position != 0 || is_new_opportunity) {
+    if (debug_ || opportunity_exists) {
         int current_pos = portfolio().position(inst);
         int working_orders = orders().num_working_orders(inst);
         std::cout
@@ -174,40 +171,39 @@ void venue_arb_aggressive::EvaluateArb(const Instrument* inst)
             << " threshold=" << arb_threshold_
             << " current_pos=" << current_pos
             << " working_orders=" << working_orders
-            << " desired=" << desired_position
+            << " trade_dir=" << trade_direction
             << " curr_dir=" << current_direction
             << " last_dir=" << last_opp.direction
-            << " NEW=" << (is_new_opportunity ? "YES" : "NO")
+            << " dir_changed=" << (direction_changed ? "YES" : "NO")
             << std::endl;
     }
 
-    // Only trade on NEW opportunities
-    if (is_new_opportunity && desired_position != 0) {
-        AdjustPortfolio(inst, desired_position, venue);
+    // AGGRESSIVE: Trade whenever opportunity exists
+    // Keep trading as long as opportunity persists, building position continuously
+    if (opportunity_exists && trade_direction != 0) {
+        AdjustPortfolio(inst, trade_direction, venue);
     }
 }
 
-void venue_arb_aggressive::AdjustPortfolio(const Instrument* inst, int desired_position, MarketCenterID venue)
+void venue_arb_aggressive::AdjustPortfolio(const Instrument* inst, int trade_direction, MarketCenterID venue)
 {
+    // AGGRESSIVE: Always trade position_size_ when opportunity exists
+    // This allows continuous trading as long as opportunity persists
+    int trade_size = trade_direction * position_size_;
 
-    int current_position = portfolio().position(inst);
-    int trade_size = desired_position - current_position;
-
-    if (trade_size == 0) {
+    // AGGRESSIVE: Allow multiple working orders to improve fill probability
+    // Only skip if we already have too many working orders (limit to prevent spam)
+    int working_orders = orders().num_working_orders(inst);
+    if (working_orders >= 3) {  // Allow up to 3 working orders per instrument
         if (debug_) {
             std::cout << "[SKIP] " << inst->symbol() 
-                      << " trade_size=0 (already at desired position " << desired_position << ")" << std::endl;
+                      << " has " << working_orders << " working orders (max 3)" << std::endl;
         }
         return;
     }
 
-    if (orders().num_working_orders(inst) > 0) {
-        if (debug_) {
-            std::cout << "[SKIP] " << inst->symbol() 
-                      << " has " << orders().num_working_orders(inst) << " working orders" << std::endl;
-        }
-        return;
-    }
+    // AGGRESSIVE: Send order even if we have some working orders
+    // This allows building position faster by having multiple orders in the market
     SendOrder(inst, trade_size, venue);
 }
 

@@ -59,7 +59,7 @@ private:
 
 private:
     void EvaluateArb(const Instrument* inst);
-    void AdjustPortfolio(const Instrument* inst, int desired_position, MarketCenterID venue);
+    void AdjustPortfolio(const Instrument* inst, int trade_direction, MarketCenterID venue);
     void SendOrder(const Instrument* inst,
                    int trade_size,
                    MarketCenterID venue);
