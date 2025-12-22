@@ -56,7 +56,7 @@ private:
     void EvaluateArb(const Instrument* inst);
     void AdjustPortfolio(const Instrument* inst,MarketCenterID buy_venue,MarketCenterID sell_venue);
     void SendOrder(const Instrument* inst,
-                   MarketCenterID venue);
+                   MarketCenterID venue, bool is_buy);
 
 private:
     // venue state

@@ -1,246 +1,101 @@
+#pragma once
+
+#ifndef _STRATEGY_STUDIO_VENUE_ARB_DOUBLE_STRATEGY_H_
+#define _STRATEGY_STUDIO_VENUE_ARB_DOUBLE_STRATEGY_H_
+
 #ifdef _WIN32
-    #include "stdafx.h"
+    #define _STRATEGY_EXPORTS __declspec(dllexport)
+#else
+    #ifndef _STRATEGY_EXPORTS
+        #define _STRATEGY_EXPORTS
+    #endif
 #endif
 
-#include "venue_arb_double.h"
+#include <Strategy.h>
+#include <MarketModels/Instrument.h>
+#include <Utilities/ParseConfig.h>
 
-#include "OrderParams.h"
-#include "ExecutionTypes.h"
+#include <boost/unordered_map.hpp>
+#include <cmath>
 
-#include <sstream>
+using namespace RCM::StrategyStudio;
+using namespace RCM::StrategyStudio::MarketModels;
 
-static std::string QuoteToString(const VenueQuote& q);
+struct VenueQuote {
+    double bid = NAN;
+    double ask = NAN;
 
-venue_arb_double::venue_arb_double(StrategyID strategyID,
-                   const std::string& strategyName,
-                   const std::string& groupName)
-    : Strategy(strategyID, strategyName, groupName),
-      arb_threshold_(0.01),
-      aggressiveness_(0.0),
-      debug_(false)
-{
-
-}
-
-venue_arb_double::~venue_arb_double() {}
-
-void venue_arb_double::DefineStrategyParams()
-{
-    // Minimum price difference between venues required to trigger an arbitrage trade.
-    // The strategy only trades when the spread between NASDAQ and IEX exceeds this threshold.
-    params().CreateParam(CreateStrategyParamArgs(
-        "arb_threshold",
-        STRATEGY_PARAM_TYPE_RUNTIME,
-        VALUE_TYPE_DOUBLE,
-        arb_threshold_));
-
-    // Price adjustment for limit orders to improve fill probability.
-    // Positive values make orders more aggressive (buy below ask, sell above bid).
-    // Higher values increase fill probability but worsen execution price.
-    params().CreateParam(CreateStrategyParamArgs(
-        "aggressiveness",
-        STRATEGY_PARAM_TYPE_RUNTIME,
-        VALUE_TYPE_DOUBLE,
-        aggressiveness_));
-
-    // Enable debug output for strategy diagnostics -- not implemented
-    params().CreateParam(CreateStrategyParamArgs(
-        "debug",
-        STRATEGY_PARAM_TYPE_RUNTIME,
-        VALUE_TYPE_BOOL,
-        debug_));
-}
-
-void venue_arb_double::DefineStrategyCommands()
-{
-    commands().AddCommand(StrategyCommand(1, "Cancel All Orders"));
-}
-
-void venue_arb_double::RegisterForStrategyEvents(StrategyEventRegister* eventRegister,
-                                         DateType currDate)
-{
-
-}
-
-void venue_arb_double::OnResetStrategyState()
-{
-    nasdaq_quotes_.clear();
-    iex_quotes_.clear();
-}
-
-void venue_arb_double::OnQuote(const QuoteEventMsg& msg)
-{
-
-    const Instrument* inst = &msg.instrument();
-    MarketCenterID mc = msg.market_center_id();
-
-    VenueQuote* vq = nullptr;
-
-    if (mc == MARKET_CENTER_ID_NASDAQ)
-        vq = &nasdaq_quotes_[inst];
-    else if (mc == MARKET_CENTER_ID_IEX)
-        vq = &iex_quotes_[inst];
-    else
-        return;
-
-    if (msg.quote().bid_side().IsValid())
-        vq->bid = msg.quote().bid();
-
-    if (msg.quote().ask_side().IsValid())
-        vq->ask = msg.quote().ask();
-
-    EvaluateArb(inst);
-}
-
-void venue_arb_double::EvaluateArb(const Instrument* inst)
-{
-    if (!nasdaq_quotes_.count(inst) || !iex_quotes_.count(inst))
-        return;
-
-    const VenueQuote& n = nasdaq_quotes_[inst];
-    const VenueQuote& i = iex_quotes_[inst];
-
-    if (!n.valid() || !i.valid())
-        return;
-
-    double spread_nasdaq_arb = i.bid - n.ask;
-    double spread_iex_arb    = n.bid - i.ask;
-
-    int current_direction = 0;
-    MarketCenterID buy_venue;
-    MarketCenterID sell_venue;
-
-    if (i.bid >= n.ask + arb_threshold_) {
-        // Buy NASDAQ, Sell IEX
-        current_direction = 1;
-        buy_venue  = MARKET_CENTER_ID_NASDAQ;
-        sell_venue = MARKET_CENTER_ID_IEX;
+    bool valid() const {
+        return std::isfinite(bid) && std::isfinite(ask);
     }
-    else if (n.bid >= i.ask + arb_threshold_) {
-        // Buy IEX, Sell NASDAQ
-        current_direction = -1;
-        buy_venue  = MARKET_CENTER_ID_IEX;
-        sell_venue = MARKET_CENTER_ID_NASDAQ;
+};
+
+class venue_arb_double : public Strategy {
+public:
+    venue_arb_double(StrategyID strategyID,
+             const std::string& strategyName,
+             const std::string& groupName);
+
+    ~venue_arb_double();
+
+public: 
+    virtual void OnQuote(const QuoteEventMsg& msg);
+    virtual void OnOrderUpdate(const OrderUpdateEventMsg& msg) {}
+
+    void OnResetStrategyState();
+    void OnStrategyCommand(const StrategyCommandEventMsg& msg);
+    void OnParamChanged(StrategyParam& param);
+
+private:
+    virtual void RegisterForStrategyEvents(StrategyEventRegister* eventRegister,
+                                           DateType currDate);
+    virtual void DefineStrategyParams();
+    virtual void DefineStrategyCommands();
+
+private:
+    void EvaluateArb(const Instrument* inst);
+    void AdjustPortfolio(const Instrument* inst,MarketCenterID buy_venue,MarketCenterID sell_venue);
+    void SendOrder(const Instrument* inst,
+                   MarketCenterID venue, bool is_buy, int trade_size);
+
+private:
+    // venue state
+    boost::unordered_map<const Instrument*, VenueQuote> nasdaq_quotes_;
+    boost::unordered_map<const Instrument*, VenueQuote> iex_quotes_;
+
+    // strategy params
+    double arb_threshold_;
+    double aggressiveness_;
+    bool debug_;
+};
+
+
+extern "C" {
+
+    _STRATEGY_EXPORTS const char* GetType() {
+        return "venue_arb_double";
     }
 
-    bool opportunity_exists = (current_direction != 0);
-
-    if (debug_ || opportunity_exists) {
-        int working_orders = orders().num_working_orders(inst);
-        std::cout
-            << "[ARB CHECK] " << inst->symbol()
-            << " NASDAQ(" << QuoteToString(n) << ")"
-            << " IEX(" << QuoteToString(i) << ")"
-            << " spread_nasdaq=" << spread_nasdaq_arb
-            << " spread_iex=" << spread_iex_arb
-            << " threshold=" << arb_threshold_
-            << " working_orders=" << working_orders
-            << " direction=" << current_direction
-            << std::endl;
+    _STRATEGY_EXPORTS IStrategy* CreateStrategy(const char* strategyType,
+                                                unsigned strategyID,
+                                                const char* strategyName,
+                                                const char* groupName) {
+        if (strcmp(strategyType, GetType()) == 0)
+            return *(new venue_arb_double(strategyID, strategyName, groupName));
+        return nullptr;
     }
 
-    // AGGRESSIVE DOUBLE: trade BOTH legs whenever opportunity exists
-    if (opportunity_exists) {
-        AdjustPortfolio(inst, buy_venue, sell_venue);
+    _STRATEGY_EXPORTS const char* GetAuthor() {
+        return "dlariviere";
+    }
+
+    _STRATEGY_EXPORTS const char* GetAuthorGroup() {
+        return "UIUC";
+    }
+
+    _STRATEGY_EXPORTS const char* GetReleaseVersion() {
+        return Strategy::release_version();
     }
 }
 
-
-void venue_arb_double::AdjustPortfolio(
-    const Instrument* inst,
-    MarketCenterID buy_venue,
-    MarketCenterID sell_venue)
-{
-
-    // BUY leg
-    SendOrder(inst, buy_venue);
-
-    // SELL leg
-    SendOrder(inst, sell_venue);
-}
-
-
-void venue_arb_double::SendOrder(const Instrument* inst,
-                         MarketCenterID venue)
-{
-    const VenueQuote& n = nasdaq_quotes_[inst];
-    const VenueQuote& i = iex_quotes_[inst];
-
-    const VenueQuote& vq =
-        (venue == MARKET_CENTER_ID_NASDAQ)
-            ? nasdaq_quotes_[inst]
-            : iex_quotes_[inst];
-
-    if (!vq.valid())
-        return;
-
-    bool is_buy = (trade_size > 0);
-
-    int available_qty =
-        is_buy ? vq.ask.size() : vq.bid.size();
-
-    int send_qty = std::min(abs(trade_size), available_qty);
-
-    if (send_qty <= 0)
-        return;
-
-    double price =
-        is_buy
-            ? vq.ask - aggressiveness_
-            : vq.bid + aggressiveness_;
-
-    std::cout
-        << "[SEND ORDER] "
-        << inst->symbol()
-        << " venue=" << (venue == MARKET_CENTER_ID_NASDAQ ? "NASDAQ" : "IEX")
-        << " side=" << (is_buy ? "BUY" : "SELL")
-        << " size=" << send_qty
-        << " price=" << price
-        << "\n  NASDAQ(" << QuoteToString(n) << ")"
-        << "\n  IEX(" << QuoteToString(i) << ")"
-        << "\n  aggressiveness=" << aggressiveness_
-        << std::endl;
-
-    OrderParams params(
-        *inst,
-        send_qty,
-        price,
-        venue,
-        is_buy ? ORDER_SIDE_BUY : ORDER_SIDE_SELL,
-        ORDER_TIF_DAY,
-        ORDER_TYPE_LIMIT);
-
-    trade_actions()->SendNewOrder(params);
-}
-
-
-void venue_arb_double::OnStrategyCommand(const StrategyCommandEventMsg& msg)
-{
-    if (msg.command_id() == 1) {
-        trade_actions()->SendCancelAll();
-    }
-}
-
-void venue_arb_double::OnParamChanged(StrategyParam& param)
-{
-    if (param.param_name() == "arb_threshold") {
-        param.Get(&arb_threshold_);
-    }
-    else if (param.param_name() == "aggressiveness") {
-        param.Get(&aggressiveness_);
-    }
-    else if (param.param_name() == "position_size") {
-        param.Get(&position_size_);
-    }
-    else if (param.param_name() == "debug") {
-        param.Get(&debug_);
-    }
-}
-
-static std::string QuoteToString(const VenueQuote& q)
-{
-    std::ostringstream oss;
-    oss << "bid=" << q.bid
-        << " ask=" << q.ask;
-    return oss.str();
-}
+#endif
