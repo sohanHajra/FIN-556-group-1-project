@@ -201,7 +201,7 @@ def create_pnl_chart(pnl: pd.DataFrame) -> go.Figure:
         xaxis_title="Time",
         yaxis_title="Cumulative P&L ($)",
         hovermode='x unified',
-        height=800,
+        height=600,
     )
     
     return fig
