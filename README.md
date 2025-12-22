@@ -28,7 +28,7 @@ Each phase presented unique challenges and learning opportunities, which are det
 
 ## Biographies
 
-![Danny Bio](images/danny_face.jpg)
+![Danny Bio](images/danny_face.jpg){ width=200px }
 
 **Danny Silverstein (dannys2)**: I am a senior studying Applied Mathematics with a minor in Computer Science. I am graduating in May 2026 and am passionate about applying mathematics to the trading industry, especially having to do with derivatives pricing and the management of ETFs with derivative underlyings. I love tackling extremely challenging topics, whether it be mathematical proofs or finding inefficiencies in the market that I can capitalize on. I created the initial Venue Arbitrage and ETF Arbitrage strategies in Strategy Studio, which I then further refined through testing to capitalize on price discrepancies. Along with this, I implemented variations of the venue arbitrage strategy with different execution mechanisms (long/short opposite exchanges vs long only), with the majority of the emphasis being on position sizing and order routing. I developed the Nasdaq + IEX data merging, modifications to the IEX parser including scripts for automation, and general project architecture to ensure complete strategy robustness.
 
