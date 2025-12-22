@@ -34,6 +34,8 @@ Each phase presented unique challenges and learning opportunities, which are det
 
 LinkedIn: https://www.linkedin.com/in/dannysilverstein/ Email: dhsilver06@gmail.com
 
+![Danny Bio](images/anton_face.png){ width=200px }
+
 **Anton Charov (acharov2)**: I am a senior studying Computer Science, and plan to graduate in May 2026. I am always hungry for market micro-structure and building robust trading strategies with systems to accompany them. I am particulary fond of equity options, and derivative products which provide value. I always say if it doesn't make PnL, it shouldn't be in production -- of course, there are edge cases, which a good trader considers. For this project, I created multiple venue arb trading stratgies, implemented stragical variations of arbs for better fill rates, built powerful strategy studio automation commands, created a full NASDAQ parser compatible with strategy studio, developed interactive tick-level multi-exchange visualizations with arb highlights, and other optimizations and modifcations to complementary scripts.
 
 LinkedIn: http://www.linkedin.com/in/anton-charov Email: acharov11@gmail.com
@@ -952,6 +954,10 @@ Throughout the development of this project, we encountered several significant t
 ---
 
 ## Results and Performance
+
+![Result Performance One](images/ss_bt_visual_1.png)
+
+![Result Performance Two](images/ss_bt_visual_2.png)
 
 Our backtest results revealed several important patterns about venue arbitrage behavior and the effectiveness of different execution strategies. The analysis focused on understanding how strategy variations performed under real market conditions, examining fill patterns, execution timing, and the relationship between trading frequency and profitability.
 
