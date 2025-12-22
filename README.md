@@ -92,7 +92,7 @@ Exchanges we used:
 - Nasdaq - For USO ETF
 - IEX - For USO ETF
 
-### Exploring CME PCAP Structure
+### Exploring CME PCAP Extraction
 To construct the CME parsers we used the SBE tool from Real Logic Limited to take in the XML files from CME and extract header files for the parser. These files were then used to parse out the relevant templates (46,47) and display them in a .txt file.
 
 A challenging task for CME was having to deal with the massive amount of storage needed for the PCAPs if they were extracted. This was especially difficult on a machine where RAM usage was limited as multiple students would access the vms at the same time to backtest and parse data. To get around this,the CME parser underwent 3 main iterations:
