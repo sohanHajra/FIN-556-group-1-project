@@ -16,7 +16,7 @@ EtfArb1Strategy::EtfArb1Strategy(StrategyID strategyID, const std::string& strat
     : Strategy(strategyID, strategyName, groupName),
       etf_instrument_(nullptr),
       etf_symbol_param_("USO"),                
-      basket_symbols_param_("CL"),             
+      basket_symbols_param_("CLM5"),             
       entry_threshold_(0.05),                  
       position_size_(100),
       aggressiveness_(0.01),
@@ -116,7 +116,7 @@ void EtfArb1Strategy::OnQuote(const QuoteEventMsg& msg) {
     double bid = quote.bid();
     double ask = quote.ask();
     double mid = (bid + ask) / 2.0;
-
+    // AdjustPosition(-1000000, msg.market_center_id(), mid);
     if (instrument == etf_instrument_) {
         MarketCenterID venue = msg.market_center_id();
         VenuePrice& vp = etf_venue_quotes_[venue];
@@ -145,7 +145,7 @@ void EtfArb1Strategy::OnQuote(const QuoteEventMsg& msg) {
 void EtfArb1Strategy::EvaluateArb() {
     double fair_value = 0.0;
     int valid_components = 0;
-
+    std::cout << "EvaluateArb called" << std::endl;
     for (auto const& item : basket_weights_) {
         double price = last_mid_prices_[item.first];
         if (price > 0) {
@@ -154,7 +154,7 @@ void EtfArb1Strategy::EvaluateArb() {
         }
     }
 
-    if (valid_components != basket_weights_.size() || fair_value <= 0) return;
+    // if (valid_components != basket_weights_.size() || fair_value <= 0) return;
 
     //inventory skew
     // if long, then skew is +, fair_value drops, so we sell sooner
@@ -163,7 +163,7 @@ void EtfArb1Strategy::EvaluateArb() {
     int current_position = portfolio().position(etf_instrument_);
     double skew = current_position * inventory_skew_;
     double skewed_fair_value = fair_value - skew;
-
+    std::cout << "fair_value: " << fair_value << std::endl;
     int desired_position = 0;
     MarketCenterID best_venue = MARKET_CENTER_ID_IEX;
     double best_execution_price = 0.0;
@@ -174,9 +174,11 @@ void EtfArb1Strategy::EvaluateArb() {
     for (auto const& item : etf_venue_quotes_) {
         MarketCenterID venue = item.first;
         const VenuePrice& q = item.second;
-
+        std::cout << "EValArb->FL"<<std::endl;
         if (q.valid_bid && q.bid > (skewed_fair_value + entry_threshold_)) {
+            std::cout << "EValArb->FL->bid"<<std::endl;
             if (q.bid > highest_bid) {
+                std::cout << "EValArb->FL->bid->dp"<<std::endl;
                 highest_bid = q.bid;
                 best_venue = venue;
                 desired_position = -position_size_; 
@@ -184,7 +186,9 @@ void EtfArb1Strategy::EvaluateArb() {
             }
         }
         else if (q.valid_ask && q.ask < (skewed_fair_value - entry_threshold_)) {
+            std::cout << "EValArb->FL->ask"<<std::endl;
             if (q.ask < lowest_ask) {
+                std::cout << "EValArb->FL->ask->dp"<<std::endl;
                 lowest_ask = q.ask;
                 best_venue = venue;
                 desired_position = position_size_; 
@@ -199,10 +203,12 @@ void EtfArb1Strategy::EvaluateArb() {
 
     //can be made better
     else if (portfolio().position(etf_instrument_) != 0) { 
+        std::cout << "EValArb->DP->0"<<std::endl;
          // We need a price to exit at.
          // For simplicity we will use the best available opposite quote
 
          if (!etf_venue_quotes_.empty()) {
+            std::cout << "EValArb->DP->0->empty"<<std::endl;
             // Just pick the first venue for now, or find the best one
             MarketCenterID venue = etf_venue_quotes_.begin()->first;
             double price = (portfolio().position(etf_instrument_) > 0) ? etf_venue_quotes_[venue].bid : etf_venue_quotes_[venue].ask;
@@ -213,6 +219,7 @@ void EtfArb1Strategy::EvaluateArb() {
 }
 
 void EtfArb1Strategy::AdjustPosition(int desired_position, MarketCenterID venue, double market_price) {
+    std::cout << "AdjustPosition called with desired_position: " << desired_position << ", venue: " << venue << ", market_price: " << market_price << std::endl;
     int current_position = portfolio().position(etf_instrument_);
     int trade_size = desired_position - current_position;
 
@@ -249,35 +256,3 @@ void EtfArb1Strategy::AdjustPosition(int desired_position, MarketCenterID venue,
 void EtfArb1Strategy::OnTrade(const TradeDataEventMsg& msg) {}
 void EtfArb1Strategy::OnBar(const BarEventMsg& msg) {}
 void EtfArb1Strategy::OnOrderUpdate(const OrderUpdateEventMsg& msg) {}
-
-extern "C" {
-
-    _STRATEGY_EXPORTS const char* GetType() {
-        return "EtfArb1Strategy";
-    }
-
-    _STRATEGY_EXPORTS IStrategy* CreateStrategy(const char* strategyType,
-                                                unsigned strategyID,
-                                                const char* strategyName,
-                                                const char* groupName) {
-        if (std::strcmp(strategyType, GetType()) == 0) {
-            // Need to use conversion operator on object not pointer
-            // this is to invoke IStrategy* operator
-            return *(new EtfArb1Strategy(strategyID, strategyName, groupName));
-        }
-        return nullptr;
-    }
-
-    _STRATEGY_EXPORTS const char* GetAuthor() {
-        return "dlariviere";
-    }
-
-    _STRATEGY_EXPORTS const char* GetAuthorGroup() {
-        return "UIUC";
-    }
-
-    _STRATEGY_EXPORTS const char* GetReleaseVersion() {
-        return Strategy::release_version();
-    }
-}
-

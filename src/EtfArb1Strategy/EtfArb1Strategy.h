@@ -68,5 +68,34 @@ private:
     double aggressiveness_; 
     double inventory_skew_;
 };
+extern "C" {
 
+    _STRATEGY_EXPORTS const char* GetType() {
+        return "EtfArb1Strategy";
+    }
+
+    _STRATEGY_EXPORTS IStrategy* CreateStrategy(const char* strategyType,
+                                                unsigned strategyID,
+                                                const char* strategyName,
+                                                const char* groupName) {
+        if (std::strcmp(strategyType, GetType()) == 0) {
+            // Need to use conversion operator on object not pointer
+            // this is to invoke IStrategy* operator
+            return *(new EtfArb1Strategy(strategyID, strategyName, groupName));
+        }
+        return nullptr;
+    }
+
+    _STRATEGY_EXPORTS const char* GetAuthor() {
+        return "dlariviere";
+    }
+
+    _STRATEGY_EXPORTS const char* GetAuthorGroup() {
+        return "UIUC";
+    }
+
+    _STRATEGY_EXPORTS const char* GetReleaseVersion() {
+        return Strategy::release_version();
+    }
+}
 #endif
