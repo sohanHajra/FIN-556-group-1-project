@@ -84,7 +84,7 @@ def create_fill_chart(fills: pd.DataFrame) -> go.Figure:
             mode='markers',
             name='Buy Fills',
             marker=dict(
-                size=abs(buys["Quantity"]) / 10,  # Scale marker size
+                size=abs(buys["Quantity"]) / 50,  # Smaller bubbles (was /10, now /50)
                 color='green',
                 opacity=0.6,
                 line=dict(width=1, color='darkgreen')
@@ -104,7 +104,7 @@ def create_fill_chart(fills: pd.DataFrame) -> go.Figure:
             mode='markers',
             name='Sell Fills',
             marker=dict(
-                size=abs(sells["Quantity"]) / 10,
+                size=abs(sells["Quantity"]) / 50,  # Smaller bubbles (was /10, now /50)
                 color='red',
                 opacity=0.6,
                 line=dict(width=1, color='darkred')
@@ -201,7 +201,7 @@ def create_pnl_chart(pnl: pd.DataFrame) -> go.Figure:
         xaxis_title="Time",
         yaxis_title="Cumulative P&L ($)",
         hovermode='x unified',
-        height=400,
+        height=1600,  # 4x taller (was 400, now 1600)
     )
     
     return fig
