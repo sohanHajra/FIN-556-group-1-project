@@ -2,7 +2,7 @@
     #include "stdafx.h"
 #endif
 
-#include "venue_arb.h"
+#include "venue_arb_double.h"
 
 #include "OrderParams.h"
 #include "ExecutionTypes.h"
@@ -11,7 +11,7 @@
 
 static std::string QuoteToString(const VenueQuote& q);
 
-venue_arb::venue_arb(StrategyID strategyID,
+venue_arb_double::venue_arb_double(StrategyID strategyID,
                    const std::string& strategyName,
                    const std::string& groupName)
     : Strategy(strategyID, strategyName, groupName),
@@ -23,9 +23,9 @@ venue_arb::venue_arb(StrategyID strategyID,
 
 }
 
-venue_arb::~venue_arb() {}
+venue_arb_double::~venue_arb_double() {}
 
-void venue_arb::DefineStrategyParams()
+void venue_arb_double::DefineStrategyParams()
 {
     // Minimum price difference between venues required to trigger an arbitrage trade.
     // The strategy only trades when the spread between NASDAQ and IEX exceeds this threshold.
@@ -60,24 +60,24 @@ void venue_arb::DefineStrategyParams()
         debug_));
 }
 
-void venue_arb::DefineStrategyCommands()
+void venue_arb_double::DefineStrategyCommands()
 {
     commands().AddCommand(StrategyCommand(1, "Cancel All Orders"));
 }
 
-void venue_arb::RegisterForStrategyEvents(StrategyEventRegister* eventRegister,
+void venue_arb_double::RegisterForStrategyEvents(StrategyEventRegister* eventRegister,
                                          DateType currDate)
 {
 
 }
 
-void venue_arb::OnResetStrategyState()
+void venue_arb_double::OnResetStrategyState()
 {
     nasdaq_quotes_.clear();
     iex_quotes_.clear();
 }
 
-void venue_arb::OnQuote(const QuoteEventMsg& msg)
+void venue_arb_double::OnQuote(const QuoteEventMsg& msg)
 {
 
     const Instrument* inst = &msg.instrument();
@@ -101,13 +101,10 @@ void venue_arb::OnQuote(const QuoteEventMsg& msg)
     EvaluateArb(inst);
 }
 
-void venue_arb::EvaluateArb(const Instrument* inst)
+void venue_arb_double::EvaluateArb(const Instrument* inst)
 {
-
-    if (!nasdaq_quotes_.count(inst) || !iex_quotes_.count(inst)) {
+    if (!nasdaq_quotes_.count(inst) || !iex_quotes_.count(inst))
         return;
-    }
-    
 
     const VenueQuote& n = nasdaq_quotes_[inst];
     const VenueQuote& i = iex_quotes_[inst];
@@ -115,63 +112,73 @@ void venue_arb::EvaluateArb(const Instrument* inst)
     if (!n.valid() || !i.valid())
         return;
 
-    // std::cout
-    //     << "[ARB] "
-    //     << inst->symbol()
-    //     << " NASDAQ(" << QuoteToString(n) << ") "
-    //     << " IEX(" << QuoteToString(i) << ") "
-    //     << " threshold=" << arb_threshold_
-    //     << std::endl;
+    double spread_nasdaq_arb = i.bid - n.ask;
+    double spread_iex_arb    = n.bid - i.ask;
 
-    int desired_position = 0;
-    MarketCenterID venue = MARKET_CENTER_ID_NASDAQ;
+    int current_direction = 0;
+    MarketCenterID buy_venue;
+    MarketCenterID sell_venue;
 
     if (i.bid >= n.ask + arb_threshold_) {
-        // Buy on NASDAQ (cheaper), sell on IEX (more expensive)
-        AdjustPortfolio(inst,
-                        position_size_,
-                        MARKET_CENTER_ID_NASDAQ);
-
-        AdjustPortfolio(inst,
-                        -position_size_,
-                        MARKET_CENTER_ID_IEX);
+        // Buy NASDAQ, Sell IEX
+        current_direction = 1;
+        buy_venue  = MARKET_CENTER_ID_NASDAQ;
+        sell_venue = MARKET_CENTER_ID_IEX;
     }
     else if (n.bid >= i.ask + arb_threshold_) {
-        // Buy on IEX (cheaper), sell on NASDAQ (more expensive)
-        // Going short, so sell on NASDAQ where we get the higher price
-        AdjustPortfolio(inst,
-                        position_size_,
-                        MARKET_CENTER_ID_IEX);
+        // Buy IEX, Sell NASDAQ
+        current_direction = -1;
+        buy_venue  = MARKET_CENTER_ID_IEX;
+        sell_venue = MARKET_CENTER_ID_NASDAQ;
+    }
 
-        AdjustPortfolio(inst,
-                        -position_size_,
-                        MARKET_CENTER_ID_NASDAQ);
+    bool opportunity_exists = (current_direction != 0);
+
+    if (debug_ || opportunity_exists) {
+        int working_orders = orders().num_working_orders(inst);
+        std::cout
+            << "[ARB CHECK] " << inst->symbol()
+            << " NASDAQ(" << QuoteToString(n) << ")"
+            << " IEX(" << QuoteToString(i) << ")"
+            << " spread_nasdaq=" << spread_nasdaq_arb
+            << " spread_iex=" << spread_iex_arb
+            << " threshold=" << arb_threshold_
+            << " working_orders=" << working_orders
+            << " direction=" << current_direction
+            << std::endl;
+    }
+
+    // AGGRESSIVE DOUBLE: trade BOTH legs whenever opportunity exists
+    if (opportunity_exists) {
+        AdjustPortfolio(inst, buy_venue, sell_venue);
     }
 }
 
-void venue_arb::AdjustPortfolio(const Instrument* inst, int desired_position, MarketCenterID venue)
+
+void venue_arb_double::AdjustPortfolio(
+    const Instrument* inst,
+    MarketCenterID buy_venue,
+    MarketCenterID sell_venue)
 {
-
-    int current_position = portfolio().position(inst);
-    int trade_size = desired_position - current_position;
-    // std::cout
-    //     << "[PORTFOLIO] "
-    //     << inst->symbol()
-    //     << " current=" << current_position
-    //     << " desired=" << desired_position
-    //     << " trade_size=" << trade_size
-    //     << std::endl;
-
-    if (trade_size == 0)
-        return;
-
-    if (orders().num_working_orders(inst) > 0) {
+    int working_orders = orders().num_working_orders(inst);
+    if (working_orders >= 6) {
+        if (debug_) {
+            std::cout << "[SKIP] " << inst->symbol()
+                      << " has " << working_orders
+                      << " working orders (max 6)" << std::endl;
+        }
         return;
     }
-    SendOrder(inst, trade_size, venue);
+
+    // BUY leg
+    SendOrder(inst, +position_size_, buy_venue);
+
+    // SELL leg
+    SendOrder(inst, -position_size_, sell_venue);
 }
 
-void venue_arb::SendOrder(const Instrument* inst,
+
+void venue_arb_double::SendOrder(const Instrument* inst,
                          int trade_size,
                          MarketCenterID venue)
 {
@@ -216,14 +223,14 @@ void venue_arb::SendOrder(const Instrument* inst,
 }
 
 
-void venue_arb::OnStrategyCommand(const StrategyCommandEventMsg& msg)
+void venue_arb_double::OnStrategyCommand(const StrategyCommandEventMsg& msg)
 {
     if (msg.command_id() == 1) {
         trade_actions()->SendCancelAll();
     }
 }
 
-void venue_arb::OnParamChanged(StrategyParam& param)
+void venue_arb_double::OnParamChanged(StrategyParam& param)
 {
     if (param.param_name() == "arb_threshold") {
         param.Get(&arb_threshold_);

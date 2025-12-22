@@ -1,7 +1,7 @@
 #pragma once
 
-#ifndef _STRATEGY_STUDIO_VENUE_ARB_STRATEGY_H_
-#define _STRATEGY_STUDIO_VENUE_ARB_STRATEGY_H_
+#ifndef _STRATEGY_STUDIO_VENUE_ARB_DOUBLE_STRATEGY_H_
+#define _STRATEGY_STUDIO_VENUE_ARB_DOUBLE_STRATEGY_H_
 
 #ifdef _WIN32
     #define _STRATEGY_EXPORTS __declspec(dllexport)
@@ -30,13 +30,13 @@ struct VenueQuote {
     }
 };
 
-class venue_arb : public Strategy {
+class venue_arb_double : public Strategy {
 public:
-    venue_arb(StrategyID strategyID,
+    venue_arb_double(StrategyID strategyID,
              const std::string& strategyName,
              const std::string& groupName);
 
-    ~venue_arb();
+    ~venue_arb_double();
 
 public: 
     virtual void OnQuote(const QuoteEventMsg& msg);
@@ -54,7 +54,7 @@ private:
 
 private:
     void EvaluateArb(const Instrument* inst);
-    void AdjustPortfolio(const Instrument* inst, int desired_position, MarketCenterID venue);
+    void AdjustPortfolio(const Instrument* inst,MarketCenterID buy_venue,MarketCenterID sell_venue);
     void SendOrder(const Instrument* inst,
                    int trade_size,
                    MarketCenterID venue);
@@ -75,7 +75,7 @@ private:
 extern "C" {
 
     _STRATEGY_EXPORTS const char* GetType() {
-        return "venue_arb";
+        return "venue_arb_double";
     }
 
     _STRATEGY_EXPORTS IStrategy* CreateStrategy(const char* strategyType,
@@ -83,7 +83,7 @@ extern "C" {
                                                 const char* strategyName,
                                                 const char* groupName) {
         if (strcmp(strategyType, GetType()) == 0)
-            return *(new venue_arb(strategyID, strategyName, groupName));
+            return *(new venue_arb_double(strategyID, strategyName, groupName));
         return nullptr;
     }
 
