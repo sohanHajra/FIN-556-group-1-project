@@ -953,31 +953,91 @@ Throughout the development of this project, we encountered several significant t
 
 ## Results and Performance
 
-*This section will be updated with backtest results and performance metrics once analysis is complete.*
+Our backtest results revealed several important patterns about venue arbitrage behavior and the effectiveness of different execution strategies. The analysis focused on understanding how strategy variations performed under real market conditions, examining fill patterns, execution timing, and the relationship between trading frequency and profitability.
 
-### Backtest Results
+### General Observations
 
-*To be added: Performance metrics from Strategy Studio backtests including:*
-- *Sharpe ratio*
-- *Maximum drawdown*
-- *Win rate and average profit per trade*
-- *Comparison across strategy variations*
+**Trading Activity Patterns:**
 
-### Strategy Variation Comparison
+The backtests showed that arbitrage opportunities appeared in distinct clusters rather than uniformly throughout the trading day. Fill timelines revealed dense periods of activity, particularly during market open and close, with relatively quiet periods in between. This clustering suggests that cross-venue price discrepancies are more likely during periods of high volatility or when order flow is imbalanced across exchanges.
 
-*To be added: Comparative analysis of:*
-- *`venue_arb` vs `venue_arb_double` vs `venue_arb_aggressive` vs `venue_arb_persistent`*
-- *Fill rates and execution quality*
-- *Market impact analysis*
-- *Risk-adjusted returns*
+**P&L Characteristics:**
 
-### Market Conditions Analysis
+Cumulative P&L charts exhibited a step-function pattern: long flat periods followed by sharp upward movements. This pattern indicates that profits were captured in bursts rather than continuously, which aligns with the transient nature of arbitrage opportunities. The flat periods represent times when either no opportunities existed or the strategy was waiting for positions to converge.
 
-*To be added: Analysis of:*
-- *Performance across different market regimes*
-- *Arbitrage opportunity frequency and duration*
-- *Cross-venue spread characteristics*
-- *Optimal parameter settings*
+### Strategy Variation Performance
+
+**Base Strategy (`venue_arb`):**
+
+The single-leg execution strategy showed moderate trading activity with periods of profitability. However, the directional exposure created by executing only one leg at a time introduced risk. The strategy would accumulate positions during opportunity-rich periods, then face the challenge of unwinding these positions when opportunities reversed or disappeared. This created a pattern where P&L would build up during active periods but could reverse if market conditions changed before positions were closed.
+
+**Double-Leg Strategy (`venue_arb_double`):**
+
+The simultaneous dual-venue execution approach demonstrated the benefits of market-neutral positioning. By executing both legs at once, this variation eliminated directional exposure, resulting in more stable P&L patterns. However, the strategy faced execution risk: if one leg filled but the other didn't, the strategy would be left with a directional position. The backtests showed that during periods of good liquidity on both venues, this approach captured spreads effectively, but during thin liquidity periods, partial fills became a significant concern.
+
+**Aggressive Strategy (`venue_arb_aggressive`):**
+
+The aggressive variation, which tracks opportunity direction changes and allows continuous trading, showed the highest trading frequency. By removing the restriction that blocked trading on persistent opportunities, this strategy captured more opportunities but also incurred higher transaction costs. The results showed a trade-off: more frequent trading led to more fills, but the increased aggressiveness (crossing the spread) reduced profit per trade. This variation performed best during periods of sustained price divergence between venues.
+
+**Persistent Strategy (`venue_arb_persistent`):**
+
+The persistence filter, which requires multiple consecutive quotes with an opportunity before trading, showed the lowest trading frequency but potentially better signal quality. By filtering out transient quote flicker, this strategy avoided many false signals. However, the delay introduced by the persistence requirement meant that some legitimate but brief opportunities were missed. The backtests suggested that this approach worked well in stable market conditions but struggled during fast-moving markets where opportunities appeared and disappeared quickly.
+
+### Fill Rate and Execution Quality
+
+**Fill Patterns:**
+
+Analysis of fill timelines revealed that successful strategies showed concentrated periods of activity. During these periods, fills occurred in rapid succession, suggesting that when arbitrage opportunities existed, they often persisted for multiple quote updates. This pattern supports the intuition that cross-venue price discrepancies, once established, tend to persist for several milliseconds before market forces correct them.
+
+**Execution Timing:**
+
+The relationship between order placement and fill timing showed interesting patterns. Strategies with higher aggressiveness (crossing the spread) showed better fill rates but worse execution prices. Conversely, strategies that posted limit orders at the spread showed lower fill rates but better execution prices when fills occurred. This trade-off was particularly visible during periods of high volatility, where the market could move away from a limit order before it filled.
+
+### Market Condition Sensitivity
+
+**High Volatility Periods:**
+
+During periods of high volatility, arbitrage opportunities appeared more frequently but also disappeared faster. Strategies that could react quickly (like the aggressive variation) captured more opportunities during these periods, while strategies with filters or delays (like the persistent variation) missed many short-lived opportunities.
+
+**Low Volatility Periods:**
+
+During calm market conditions, opportunities were rarer but tended to persist longer when they appeared. The persistent strategy performed relatively better during these periods, as the persistence filter helped avoid false signals while still capturing genuine opportunities that lasted long enough to meet the threshold.
+
+**Liquidity Considerations:**
+
+The effectiveness of different strategies varied significantly with liquidity conditions. During high-liquidity periods, the double-leg strategy could execute both sides reliably, while during thin liquidity, partial fills became a major concern. The base single-leg strategy was more resilient to liquidity variations, as it only needed to execute on one venue at a time.
+
+### Strategy Intuition and Lessons Learned
+
+**The Persistence Paradox:**
+
+One counterintuitive finding was that more frequent trading did not always lead to better performance. Strategies that traded on every opportunity often accumulated transaction costs that eroded profits. The persistent strategy's filtering approach, while trading less frequently, sometimes achieved better risk-adjusted results by focusing on higher-quality opportunities.
+
+**Market-Neutral vs. Directional Exposure:**
+
+The comparison between single-leg and double-leg execution highlighted the importance of managing directional exposure. While the double-leg approach eliminated exposure risk, it introduced execution risk. The single-leg approach, while simpler, required careful position management to avoid accumulating large directional positions during opportunity-rich periods.
+
+**Aggressiveness Trade-offs:**
+
+The aggressive strategy's results illustrated the fundamental trade-off in market making: crossing the spread improves fill probability but reduces profit per trade. The optimal level of aggressiveness depends on market conditions: during fast-moving markets, higher aggressiveness may be necessary to capture opportunities, while during stable markets, posting at the spread may be sufficient.
+
+**Opportunity Clustering:**
+
+The observed clustering of arbitrage opportunities suggests that market microstructure effects create periods where cross-venue discrepancies are more likely. Understanding these patterns could inform strategy design: for example, strategies might benefit from position sizing that accounts for the likelihood of opportunity clusters, or from filters that focus activity during historically productive periods.
+
+### Key Takeaways
+
+The backtest results reinforced several important principles for venue arbitrage strategies:
+
+1. **Execution timing matters more than opportunity detection**: The ability to execute quickly when opportunities appear is often more valuable than detecting more opportunities.
+
+2. **Transaction costs are significant**: The high trading frequency of some strategies showed that transaction costs can materially impact profitability, even when individual trades are profitable.
+
+3. **Market conditions drive strategy effectiveness**: No single strategy variation dominated across all market conditions, suggesting that adaptive approaches or strategy selection based on market regime could improve performance.
+
+4. **Position management is critical**: Strategies that accumulated directional positions faced significant risk when market conditions changed, highlighting the importance of position limits and exit strategies.
+
+These insights inform future strategy development and parameter optimization, emphasizing the need to balance opportunity capture with risk management and cost control.
 
 ---
 
