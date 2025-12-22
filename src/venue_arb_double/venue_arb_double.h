@@ -24,11 +24,16 @@ using namespace RCM::StrategyStudio::MarketModels;
 struct VenueQuote {
     double bid = NAN;
     double ask = NAN;
+    int bid_size = 0;
+    int ask_size = 0;
 
     bool valid() const {
-        return std::isfinite(bid) && std::isfinite(ask);
+        return std::isfinite(bid) && std::isfinite(ask)
+            && bid_size > 0
+            && ask_size > 0;
     }
 };
+
 
 class venue_arb_double : public Strategy {
 public:
@@ -56,7 +61,7 @@ private:
     void EvaluateArb(const Instrument* inst);
     void AdjustPortfolio(const Instrument* inst,MarketCenterID buy_venue,MarketCenterID sell_venue);
     void SendOrder(const Instrument* inst,
-                   MarketCenterID venue, bool is_buy);
+                   MarketCenterID venue, bool is_buy, int size);
 
 private:
     // venue state
