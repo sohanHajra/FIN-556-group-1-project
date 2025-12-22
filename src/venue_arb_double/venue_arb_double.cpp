@@ -17,7 +17,6 @@ venue_arb_double::venue_arb_double(StrategyID strategyID,
     : Strategy(strategyID, strategyName, groupName),
       arb_threshold_(0.01),
       aggressiveness_(0.0),
-      position_size_(100),
       debug_(false)
 {
 
@@ -43,14 +42,6 @@ void venue_arb_double::DefineStrategyParams()
         STRATEGY_PARAM_TYPE_RUNTIME,
         VALUE_TYPE_DOUBLE,
         aggressiveness_));
-
-    // Target position size when an arbitrage opportunity is detected.
-    // The strategy will trade to reach this position (+position_size for long, -position_size for short).
-    params().CreateParam(CreateStrategyParamArgs(
-        "position_size",
-        STRATEGY_PARAM_TYPE_RUNTIME,
-        VALUE_TYPE_INT,
-        position_size_));
 
     // Enable debug output for strategy diagnostics -- not implemented
     params().CreateParam(CreateStrategyParamArgs(
@@ -160,26 +151,16 @@ void venue_arb_double::AdjustPortfolio(
     MarketCenterID buy_venue,
     MarketCenterID sell_venue)
 {
-    int working_orders = orders().num_working_orders(inst);
-    if (working_orders >= 6) {
-        if (debug_) {
-            std::cout << "[SKIP] " << inst->symbol()
-                      << " has " << working_orders
-                      << " working orders (max 6)" << std::endl;
-        }
-        return;
-    }
 
     // BUY leg
-    SendOrder(inst, +position_size_, buy_venue);
+    SendOrder(inst, buy_venue);
 
     // SELL leg
-    SendOrder(inst, -position_size_, sell_venue);
+    SendOrder(inst, sell_venue);
 }
 
 
 void venue_arb_double::SendOrder(const Instrument* inst,
-                         int trade_size,
                          MarketCenterID venue)
 {
     const VenueQuote& n = nasdaq_quotes_[inst];
@@ -193,8 +174,18 @@ void venue_arb_double::SendOrder(const Instrument* inst,
     if (!vq.valid())
         return;
 
+    bool is_buy = (trade_size > 0);
+
+    int available_qty =
+        is_buy ? vq.ask.size() : vq.bid.size();
+
+    int send_qty = std::min(abs(trade_size), available_qty);
+
+    if (send_qty <= 0)
+        return;
+
     double price =
-        trade_size > 0
+        is_buy
             ? vq.ask - aggressiveness_
             : vq.bid + aggressiveness_;
 
@@ -202,8 +193,8 @@ void venue_arb_double::SendOrder(const Instrument* inst,
         << "[SEND ORDER] "
         << inst->symbol()
         << " venue=" << (venue == MARKET_CENTER_ID_NASDAQ ? "NASDAQ" : "IEX")
-        << " side=" << (trade_size > 0 ? "BUY" : "SELL")
-        << " size=" << abs(trade_size)
+        << " side=" << (is_buy ? "BUY" : "SELL")
+        << " size=" << send_qty
         << " price=" << price
         << "\n  NASDAQ(" << QuoteToString(n) << ")"
         << "\n  IEX(" << QuoteToString(i) << ")"
@@ -212,10 +203,10 @@ void venue_arb_double::SendOrder(const Instrument* inst,
 
     OrderParams params(
         *inst,
-        abs(trade_size),
+        send_qty,
         price,
         venue,
-        trade_size > 0 ? ORDER_SIDE_BUY : ORDER_SIDE_SELL,
+        is_buy ? ORDER_SIDE_BUY : ORDER_SIDE_SELL,
         ORDER_TIF_DAY,
         ORDER_TYPE_LIMIT);
 

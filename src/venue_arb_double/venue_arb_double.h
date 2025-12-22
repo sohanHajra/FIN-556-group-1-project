@@ -56,7 +56,6 @@ private:
     void EvaluateArb(const Instrument* inst);
     void AdjustPortfolio(const Instrument* inst,MarketCenterID buy_venue,MarketCenterID sell_venue);
     void SendOrder(const Instrument* inst,
-                   int trade_size,
                    MarketCenterID venue);
 
 private:
@@ -67,7 +66,6 @@ private:
     // strategy params
     double arb_threshold_;
     double aggressiveness_;
-    int position_size_;
     bool debug_;
 };
 
