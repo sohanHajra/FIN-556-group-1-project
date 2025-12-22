@@ -389,6 +389,37 @@ pip install -r src/requirements.txt
 
 ---
 
+## Backtest Results Visualizer
+
+A separate visualization tool is available for analyzing Strategy Studio backtest results:
+
+**File**: `backtest_results_visualizer.py`
+
+**Purpose**: Visualize fills, orders, and P&L from Strategy Studio backtest CSV exports.
+
+**Usage**:
+```bash
+# Specify all three files
+python src/visualize/backtest_results_visualizer.py \
+    --fill-file path/to/fill.csv \
+    --order-file path/to/order.csv \
+    --pnl-file path/to/pnl.csv
+
+# Auto-detect from base name
+python src/visualize/backtest_results_visualizer.py \
+    --base-name BACK_Acharov2VenueArbInstance100000_2025-12-22_025433_start_04-01-2025_end_04-03-2025
+```
+
+**Features**:
+- Fill timeline: Scatter plot showing buy (green) and sell (red) fills over time
+- Order timeline: Orders colored by state (FILLED, CANCELLED, etc.)
+- P&L chart: Cumulative profit and loss over time
+- Summary statistics: Total fills, orders, volume, and P&L metrics
+
+**Default Port**: 8051 (to avoid conflicts with event stream visualizer on 8050)
+
+---
+
 ## Related Documentation
 
 - **Processing Pipeline**: See `src/ingest/README.md` for complete NASDAQ ITCH processing documentation

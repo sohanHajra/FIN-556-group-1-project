@@ -34,6 +34,7 @@ This directory contains additional documentation and serves as a central index t
   - Data format requirements
   - Integration with processing pipeline
   - Examples and tips
+  - **Backtest Results Visualizer**: Visualize Strategy Studio backtest results (fills, orders, P&L)
 
 ### Strategy Studio Documentation
 
