@@ -92,6 +92,16 @@ Exchanges we used:
 - Nasdaq - For USO ETF
 - IEX - For USO ETF
 
+### Exploring CME PCAP Structure
+To construct the CME parsers we used the SBE tool from Real Logic Limited to take in the XML files from CME and extract header files for the parser. These files were then used to parse out the relevant templates (46,47) and display them in a .txt file.
+
+A challenging task for CME was having to deal with the massive amount of storage needed for the PCAPs if they were extracted. This was especially difficult on a machine where RAM usage was limited as multiple students would access the vms at the same time to backtest and parse data. To get around this,the CME parser underwent 3 main iterations:
+1) Reading extracted PCAP into memory and then parsing.
+2) Reading extracted PCAP and parsing one packet at a time.
+3) Reading the .zst file and piping the stream into the parser.
+
+The last iteration was ultimately the one chosen as it performed the best when comparing speed, RAM usage, and multithreading capabilities. As a result of these iterations parsing one day’s worth of PCAPs into level 3 orderbook data took around ~15 minutes and negligible RAM space compared to the other two options which also suffered from being idle as the PCAP was extracted. To automate this process scripts were written to parse a day's worth in one go and combine all individual sections so they can be used by the backtesting software.
+
 ### Exploring Nasdaq PCAP Structure
 
 The Nasdaq TotalView-ITCH (ITCH 5.0) protocol is a binary message format used by Nasdaq to disseminate real-time market data. ITCH messages are transmitted over UDP using the MoldUDP64 encapsulation protocol, which packages multiple ITCH messages into single UDP packets for efficient network transmission.

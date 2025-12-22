@@ -8,10 +8,10 @@ To parse CME PCAP files, follow the steps below:
 
 ### 1. **Compile the Decoder**
 
-First, you need to compile the `StreamParse.cpp` file to generate the executable:
+First, you need to compile the `streamParse.cpp` file to generate the executable:
 
 ```bash
-g++ StreamParse.cpp -o a.out
+g++ streamParse.cpp -o a.out
 ````
 
 This will create the `a.out` executable that is used in the parsing process.
