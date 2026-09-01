@@ -1,167 +1,151 @@
-# go_strategies.sh — quickly jump to the StrategyStudio strategies directory
+# Strategy Studio Directory Structure
 
-cd ~/ss/sdk/RCM/StrategyStudio/examples/strategies
+This document describes the Strategy Studio directory structure and how the project integrates with it.
 
-/ss/bt/backtester_config.txt pint to text tick files
+## Overview
 
-go to ss prefferred feeds go in and there and add entry for nasdaq
+The project uses a **source-of-truth** approach where:
+- **Strategy source code** lives in `src/` (this repository)
+- **StrategyStudio directories** are treated as build/deploy targets
+- **Automation scripts** handle copying, building, and running
 
+You should **never manually edit StrategyStudio files** - use the provided scripts instead.
 
-/ss/bt/preferred_feeds.csv add nasdaq
+## Key Strategy Studio Directories
 
+### Strategy Source Code Location
+```
+$HOME/ss/sdk/RCM/StrategyStudio/examples/strategies/
+├── venue_arb/              # Strategy directory (created by clone_strategy.sh)
+│   ├── venue_arb.cpp       # Copied from src/venue_arb/venue_arb.cpp
+│   ├── venue_arb.h         # Copied from src/venue_arb/venue_arb.h
+│   ├── Makefile            # Auto-updated by clone_strategy.sh
+│   └── venue_arb.so        # Built output (after make)
+```
 
+**Note:** Strategies are cloned from templates (e.g., `dia_index_arb_strategy`) using `./scripts/clone_strategy.sh`.
 
-----
+### Backtest Runtime Directory
+```
+$HOME/ss/bt/
+├── StrategyServerBacktesting    # Backtest server executable
+├── utilities/
+│   └── StrategyCommandLine      # CLI tool for managing instances
+├── backtester_config.txt        # Points to tick data directory
+├── preferred_feeds.csv           # Market center configuration
+└── backtesting-results/         # CRA files (backtest results)
+```
 
-# work on auto strat builder
+## Workflow
 
+### Initial Setup (One-Time)
 
-# clone_strategy.sh — duplicates dia_index_arb_strategy to acharov2_strategy
+1. **Clone strategy template:**
+   ```bash
+   ./scripts/clone_strategy.sh --name venue_arb
+   ```
+   This creates the StrategyStudio directory and sets up the Makefile.
 
-# and updates Makefile entries accordingly
+2. **Configure data paths:**
+   - Edit `$HOME/ss/bt/backtester_config.txt` to point to your tick data
+   - Edit `$HOME/ss/bt/preferred_feeds.csv` to include market centers (e.g., NASDAQ, IEX)
 
+### Daily Development Workflow
 
-# Step 1: go to strategies directory
+1. **Edit code in repository:**
+   ```bash
+   # Edit files in src/venue_arb/
+   vim src/venue_arb/venue_arb.cpp
+   ```
 
-cd ~/ss/sdk/RCM/StrategyStudio/examples/strategies/ || {
+2. **Deploy and build:**
+   ```bash
+   ./scripts/deploy_strategy.sh --name venue_arb
+   ```
+   This:
+   - Copies `.cpp` and `.h` from `src/` to StrategyStudio directory
+   - Runs `make` to build the `.so` file
+   - Runs `make copy_strategy` to copy `.so` to backtest runtime directory
 
-  echo "Directory not found!"
+3. **Run backtest:**
+   ```bash
+   ./scripts/run_strategy.sh run
+   ```
 
-  exit 1
+## Important Paths
 
+| Purpose | Path |
+|---------|------|
+| Strategy source code (edit here) | `group_01_project/src/venue_arb/` |
+| StrategyStudio strategy directory | `$HOME/ss/sdk/RCM/StrategyStudio/examples/strategies/venue_arb/` |
+| Compiled strategy library | `$HOME/StrategyStudio/Backtesting/Strategies/venue_arb.so` |
+| Backtest server | `$HOME/ss/bt/StrategyServerBacktesting` |
+| Backtest configuration | `$HOME/ss/bt/backtester_config.txt` |
+| Market center config | `$HOME/ss/bt/preferred_feeds.csv` |
+| Backtest results | `$HOME/ss/bt/backtesting-results/` |
+| Server logs | `/student_work/$USER/ss_logs/bt_server.log` |
+
+## Build Process
+
+When you run `./scripts/deploy_strategy.sh --name venue_arb`:
+
+1. **Copy source files:**
+   - `src/venue_arb/venue_arb.cpp` → `$HOME/ss/sdk/.../strategies/venue_arb/venue_arb.cpp`
+   - `src/venue_arb/venue_arb.h` → `$HOME/ss/sdk/.../strategies/venue_arb/venue_arb.h`
+
+2. **Build:**
+   - Runs `make` in the strategy directory
+   - Produces `venue_arb.so`
+
+3. **Install:**
+   - Runs `make copy_strategy`
+   - Copies `venue_arb.so` to `$HOME/StrategyStudio/Backtesting/Strategies/`
+
+4. **Load:**
+   - Backtest server loads `.so` files from `$HOME/StrategyStudio/Backtesting/Strategies/`
+   - Use `./scripts/bt_instance.sh recheck` to force reload
+
+## Strategy Exports
+
+Each strategy must export these functions (defined in the `.h` file):
+
+```cpp
+extern "C" {
+    _STRATEGY_EXPORTS const char* GetType() {
+        return "venue_arb";  // Must match strategy name used in scripts
+    }
+    
+    _STRATEGY_EXPORTS IStrategy* CreateStrategy(...) { ... }
+    _STRATEGY_EXPORTS const char* GetAuthor() { ... }
+    _STRATEGY_EXPORTS const char* GetAuthorGroup() { ... }
+    _STRATEGY_EXPORTS const char* GetReleaseVersion() { ... }
 }
+```
 
+The `GetType()` return value **must exactly match** the strategy name used in:
+- `scripts/bt_config.sh`: `BT_STRATEGY_TYPE="venue_arb"`
+- Command-line flags: `--strategy_type venue_arb`
 
-# Step 2: copy the strategy folder
+## Troubleshooting
 
-cp -r dia_index_arb_strategy acharov2_strategy
+### Strategy Not Loading
 
+1. Verify strategy type matches in source code and config
+2. Restart backtest server: `./scripts/bt_server.sh restart`
+3. Recheck strategies: `./scripts/bt_instance.sh recheck`
+4. Check server logs: `./scripts/bt_server.sh logs | grep -i "venue_arb"`
 
-# Step 3: enter new folder
+### Build Errors
 
-cd acharov2_strategy/ || {
-
-  echo "❌ Failed to enter acharov2_strategy directory"
-
-  exit 1
-
-}
-
-
-# Step 4: rename files
-
-mv DiaIndexArb.h acharov2_strategy.h
-
-mv DiaIndexArb.cpp acharov2_strategy.cpp
-
-mv DiaIndexArb.so acharov2_strategy.so
-
-
-# Step 5: update Makefile
-
-if [ -f Makefile ]; then
-
-  echo "Updating Makefile..."
-
-  sed -i.bak \
-
-    -e 's|LIBRARY=.*|LIBRARY=acharov2_strategy.so|' \
-
-    -e 's|SOURCES=.*|SOURCES=acharov2_strategy.cpp|' \
-
-    -e 's|HEADERS=.*|HEADERS=acharov2_strategy.h|' \
-
-    Makefile
-
-  echo "Makefile updated (backup saved as Makefile.bak)"
-
-else
-
-  echo "No Makefile found in directory!"
-
-fi
-
-
-echo "Successfully cloned DiaIndexArb strategy to acharov2_strategy"
-
-
------
-
-Extra notes:
-
-cd ~/ss/sdk/RCM/StrategyStudio/examples/strategies/
-cp -r dia_index_arb_strategy acharov2_strategy
-cd acharov2_strategy/
-mv DiaIndexArb.h acharov2_strategy.h
-mv DiaIndexArb.cpp acharov2_strategy.cpp
-mv DiaIndexArb.so acharov2_strategy.so
-
--- in nano Makefile rename
-LIBRARY=acharov2_strategy.so, SOURCES=acharov2_strategy.cpp, HEADERS=acharov2_strategy.h
-
-~/ss/bt/StrategyServerBacktesting
-
-----
-
-make copy_strategy
-
-change in acharov2_strategy.cpp 
--> include header to acharov2_strategy.h
-
-Strategy exports in acharov2_strategy.h
-on return 
-
-make copy_strategy
-
-(in bt directory)
-./StrategyServerBacktesting &
-
-
----- create instance ----
-
-cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd create_instance MyAcharov2Instance acharov2_strategy UIUC SIM-1001-101 dlariviere 9900000 -symbols "SPY|NVDA|GOOG"
-
----- start back test ----
-
-cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd start_backtest "$startDate" "$endDate" "$instanceName" 0
-
-
-cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd start_backtest "2023-09-05" "2023-09-05" "MyAcharov2Instance" 0
-
----- see running strategies ----
-
-cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd strategy_instance_list
-
----- termination for strategies
-
-cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd 
-terminate|pause|stop -all
-
---- see results ---
-
-ls -lA ~/ss/bt/backtesting-results/
-
---- export results ---
-cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd export_cra_file "~/ss/bt/backtesting-results/BACK_MyAcharov2Instance_2025-10-22_031417_start_09-05-2023_end_09-05-2023.cra"
-
-
---- for corrupted strategies, run
-
+If build fails:
+```bash
+cd $HOME/ss/sdk/RCM/StrategyStudio/examples/strategies/venue_arb/
 make clean
-
 make
-
 make copy_strategy
+```
 
-***don't worry about warning***
+### See Also
 
-
---- helper script
-
-/vagrant/provision_scripts/run_backtest.sh
-
-
-
-
-cd "$HOME/ss/bt/utilities" && ./StrategyCommandLine cmd export_cra_file "/home/ach
-arov2/ss/bt/backtesting-results/BACK_MyAcharov2Instance_2025-10-22_031417_start_09-05-2023_end_09-05-2023.cra"
+- **[Strategy Studio Scripts README](../scripts/README.md)** - Complete automation guide
+- **[Strategy Studio Backtest Prerequisites](ss_backtest_prereqs.md)** - Configuration requirements

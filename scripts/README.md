@@ -40,6 +40,39 @@ group_01_project/
 
 ---
 
+## Quick Start: Essential Prerequisites
+
+**⚠️ IMPORTANT:** Before using any scripts, you must complete these one-time setup steps:
+
+### 1. Clone the Base Strategy Repository
+
+You need the source strategy template before cloning/customizing your own strategies:
+
+```bash
+cd ~/ss/sdk/RCM/StrategyStudio/examples/strategies/
+git clone https://oauth2:glpat-SoENCtAH9Kv7y86xNDCa@gitlab.engr.illinois.edu/shared_code/example_trading_strategies/dia_index_arb_strategy.git
+```
+
+This gives you a clean reference strategy (`dia_index_arb_strategy`) to work from.
+
+### 2. Create Runtime Directory and Fix Makefile Paths
+
+The default Makefiles have hardcoded paths that will cause permission errors. Run the fix script:
+
+```bash
+# From the project root
+./scripts/fix_makefile_paths.sh
+```
+
+This script:
+- Creates the runtime directory: `$HOME/ss/bt/strategies_dlls`
+- Fixes all Makefiles to use `$(HOME)` instead of hardcoded `/home/vagrant` paths
+- Creates backups before modifying files
+
+**That's it!** After these two steps, you're ready to use the rest of the scripts.
+
+---
+
 # Before starting
 
 Make sure that you environment variables are setup! Some scripts rely on environment variables and user-specific paths.
@@ -66,6 +99,8 @@ This:
 * updates the Makefile automatically
 
 You only need to do this **once per strategy name**.
+
+**After cloning**, you can use `deploy_strategy.sh` (see "Daily workflow" below) to copy your code from `src/` and build.
 
 ---
 
@@ -110,6 +145,8 @@ Do **not** edit StrategyStudio SDK files directly.
 
 This overwrites the StrategyStudio files and rebuilds the `.so`.
 
+**Note:** You must have run `clone_strategy.sh` first (see "One-time setup" above) to create the StrategyStudio directory.
+
 ```bash
 ./scripts/deploy_strategy.sh --name venue_arb
 ```
@@ -120,6 +157,45 @@ What this does:
 * runs `make`
 * runs `make copy_strategy`
 * places the `.so` in the backtest runtime directory
+
+---
+
+### 2b) Reference guide for complete workflow
+
+**Note:** `deploy_and_test.sh` is a **reference guide only** - it does NOT execute commands. It prints the recommended pipeline structure you should follow manually.
+
+To see the recommended workflow structure:
+
+```bash
+./scripts/deploy_and_test.sh
+```
+
+This will print a helpful guide showing the complete pipeline:
+1. Restart backtest server
+2. Deploy and build the strategy
+3. Terminate existing instances
+4. Run full pipeline (recheck → create → backtest)
+5. View logs (optional)
+
+**To actually run the workflow**, copy and execute the commands shown in the guide, or use the individual scripts:
+
+```bash
+# Restart server
+./scripts/bt_server.sh stop && sleep 3 && ./scripts/bt_server.sh start
+
+# Deploy strategy
+./scripts/deploy_strategy.sh --name venue_arb
+
+# Terminate all instances
+./scripts/run_strategy.sh killall && sleep 8
+
+# Run full pipeline (uses config defaults or override with flags)
+./scripts/run_strategy.sh run
+./scripts/run_strategy.sh run --start 2023-09-05 --end 2023-09-05
+
+# View logs (optional)
+./scripts/ss_logs.sh bt
+```
 
 ---
 
@@ -334,13 +410,150 @@ before backtesting.
 
 ---
 
-### Backtest server won’t start
+### Backtest server won't start
 
 Check logs:
 
 ```bash
 ./scripts/bt_server.sh logs
 ```
+
+---
+
+### Strategy not loading or not found
+
+If your strategy doesn't appear in the list or fails to load, follow these steps:
+
+**1. Restart the backtest server** (forces reload of all `.so` files):
+
+```bash
+./scripts/bt_server.sh restart
+```
+
+**2. Recheck strategy DLLs** (tells StrategyStudio to scan for new strategies):
+
+```bash
+./scripts/bt_instance.sh recheck
+```
+
+**3. Verify strategy type matches source code:**
+
+The strategy type you use in scripts/config must **exactly match** the string returned by `GetType()` in your C++ header file.
+
+Check your source file (e.g., `src/venue_arb/venue_arb.h`):
+```cpp
+extern "C" {
+    _STRATEGY_EXPORTS const char* GetType() {
+        return "venue_arb";  // <-- This string must match
+    }
+}
+```
+
+Then verify it matches:
+- `scripts/bt_config.sh`: `BT_STRATEGY_TYPE="venue_arb"`
+- Command-line flags: `--strategy_type venue_arb`
+- Instance creation: `--strategy venue_arb`
+
+**4. Ensure strategy was deployed and built:**
+
+```bash
+# Deploy and rebuild
+./scripts/deploy_strategy.sh --name venue_arb
+
+# Verify .so file exists
+ls $HOME/StrategyStudio/Backtesting/Strategies/*.so
+```
+
+**5. Check for build errors:**
+
+Look for compilation errors in the deploy output. Common issues:
+- Missing includes
+- Linker errors
+- Syntax errors in C++ code
+
+**6. Check server startup logs for strategy registration:**
+
+When the server starts, it logs which strategies are registered. Check the logs to verify your strategy was loaded:
+
+```bash
+# View recent server logs
+./scripts/bt_server.sh logs | tail -50
+
+# Search for your strategy name
+./scripts/bt_server.sh logs | grep -i "venue_arb"
+
+# Look for registration messages
+./scripts/bt_server.sh logs | grep -i "register\|load\|strategy"
+```
+
+You should see messages indicating your strategy was successfully registered. If not, the strategy wasn't loaded.
+
+**7. Verify strategy version matches source code:**
+
+The version returned by `GetReleaseVersion()` in your header file must match what StrategyStudio sees. Check your source code:
+
+```cpp
+// In src/venue_arb/venue_arb.h
+extern "C" {
+    _STRATEGY_EXPORTS const char* GetReleaseVersion() {
+        return Strategy::release_version();  // <-- Check what this returns
+    }
+}
+```
+
+After deploying, check the server logs for the version string when the strategy loads. The version should appear in the registration logs. You can also check by looking at the `.so` file's metadata or by examining the server logs when the strategy is first loaded.
+
+**8. Full reload sequence** (if strategy still not found):
+
+```bash
+# First, terminate all running instances (they may be using old .so files)
+./scripts/run_strategy.sh killall
+# Or: ./scripts/bt_instance.sh terminate --all
+
+# Stop server
+./scripts/bt_server.sh stop
+
+# Deploy and rebuild
+./scripts/deploy_strategy.sh --name venue_arb
+
+# Restart server
+./scripts/bt_server.sh start
+
+# Wait a moment for server to fully start
+sleep 3
+
+# Recheck strategies (tells StrategyStudio to scan for new .so files)
+./scripts/bt_instance.sh recheck
+
+# Check server logs to verify strategy was registered
+./scripts/bt_server.sh logs | grep -i "venue_arb"
+
+# Note: 'list' shows running instances, not available strategies
+# To see if strategy is available, check the server logs or try creating an instance
+```
+
+**9. Check server logs for errors:**
+
+```bash
+# Look for errors
+./scripts/bt_server.sh logs | grep -i error
+
+# Look for your strategy specifically
+./scripts/bt_server.sh logs | grep -i "venue_arb"
+
+# Check for loading/registration issues
+./scripts/bt_server.sh logs | grep -i "fail\|error\|cannot\|unable"
+```
+
+**Common mistakes:**
+- Strategy type mismatch between source code and config
+- Forgot to deploy after code changes
+- Build failed silently (check deploy output)
+- Server not restarted after deploying new strategy
+- `.so` file not copied to correct location
+- Running instances still using old `.so` files (use `killall` first)
+- Version mismatch between source code and loaded strategy
+- Strategy not appearing in server startup logs (means it wasn't registered)
 
 ---
 
@@ -360,5 +573,108 @@ Check logs:
 * Scripts are intentionally simple and explicit
 * If something breaks, inspect logs first
 * Do not manually edit StrategyStudio SDK files unless debugging
+
+---
+
+## Appendix: Understanding the Makefile Path Issue
+
+### The Problem
+
+Strategy Studio builds `.so` strategy binaries, and `make copy_strategy` copies the `.so` into a runtime directory. However, the default Makefile from cloned strategies contains a **hardcoded path**:
+
+```makefile
+cp *.so /home/vagrant/ss/bt/strategies_dlls/.
+```
+
+If you're not the `vagrant` user, this causes a **permission denied** error. The build succeeds, but the copy step fails silently, which prevents Strategy Studio from loading your strategy.
+
+**Symptoms:**
+- Build completes successfully
+- `make copy_strategy` fails with "permission denied"
+- Strategy doesn't appear in Strategy Studio
+- No `.so` file in the runtime directory
+
+### The Solution
+
+**Automated Fix (Recommended):**
+
+Run the fix script to automatically update all Makefiles:
+
+```bash
+# Fix all strategies
+./scripts/fix_makefile_paths.sh
+
+# Or fix a specific strategy
+./scripts/fix_makefile_paths.sh --strategy venue_arb
+```
+
+This script:
+- Replaces `/home/vagrant/ss/bt/strategies_dlls` with `$(HOME)/ss/bt/strategies_dlls`
+- Creates the runtime directory if it doesn't exist: `$HOME/ss/bt/strategies_dlls`
+- Creates backups (`.bak` files) of Makefiles before modifying them
+- Reports which strategies were fixed
+
+**Manual Fix (Alternative):**
+
+If you prefer to fix manually:
+
+1. Navigate to your strategy directory:
+   ```bash
+   cd ~/ss/sdk/RCM/StrategyStudio/examples/strategies/<strategy_name>
+   ```
+
+2. Edit the Makefile:
+   ```bash
+   nano Makefile
+   ```
+
+3. Find the `copy_strategy` target and replace:
+   ```makefile
+   # OLD (hardcoded - causes permission errors):
+   cp *.so /home/vagrant/ss/bt/strategies_dlls/.
+   
+   # NEW (portable - works for any user):
+   cp *.so $(HOME)/ss/bt/strategies_dlls/.
+   ```
+
+4. Ensure the directory exists:
+   ```bash
+   mkdir -p ~/ss/bt/strategies_dlls
+   ```
+
+### Verify the Fix
+
+After running the patch script, verify everything is correct:
+
+```bash
+# Check that the runtime directory exists
+ls -ld ~/ss/bt/strategies_dlls
+
+# Check a Makefile was fixed (should show $(HOME), not /home/vagrant)
+grep "strategies_dlls" ~/ss/sdk/RCM/StrategyStudio/examples/strategies/venue_arb/Makefile
+```
+
+You should see `$(HOME)/ss/bt/strategies_dlls` in the Makefile, not `/home/vagrant/ss/bt/strategies_dlls`.
+
+### When to Run This
+
+- **Before cloning your first strategy** (if you want to fix the template)
+- **After cloning a strategy** (recommended - fix it immediately)
+- **If you get "permission denied" errors** during `make copy_strategy`
+- **After pulling updates** that might have reset Makefiles
+
+**Note:** The patch script is safe to run multiple times - it only fixes Makefiles that need fixing and creates backups.
+
+### Mental Model
+
+Understanding the workflow:
+
+1. **Git clone** → Gets raw strategy source (`dia_index_arb_strategy`)
+2. **`clone_strategy.sh`** → Creates a new named strategy (e.g., `venue_arb`)
+3. **Makefile copy path** → MUST point to your user's `strategies_dlls` directory
+4. **`deploy_strategy.sh`** → Best for repo-based workflows (edits in `src/`)
+5. **`build_copy_strategy.sh`** → Best for direct SDK edits
+
+Once the `.so` file lands in `~/ss/bt/strategies_dlls`, Strategy Studio can see and load it ✅
 
 ---

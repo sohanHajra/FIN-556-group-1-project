@@ -105,8 +105,12 @@ case "${1:-}" in
     ;;
 
   restart)
+    echo "Restarting StrategyServerBacktesting..."
     "$0" stop
+    echo "Waiting for server to fully stop..."
+    sleep 5
     "$0" start
+    echo "Restart complete"
     ;;
 
   *)

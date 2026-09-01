@@ -15,7 +15,7 @@ BT_BACKTEST_MODE="0"
 
 # Instance defaults
 BT_INSTANCE_NAME="Acharov2VenueArbInstance1000"
-BT_STRATEGY_TYPE="DiaIndexArbStrategy"
+BT_STRATEGY_TYPE="venue_arb"
 BT_SYMBOLS="USO"
 
 # Account / user defaults

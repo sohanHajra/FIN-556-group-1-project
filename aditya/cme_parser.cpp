@@ -92,10 +92,6 @@ class cme_parser{
                         message << std::put_time(tm_info, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(6) << std::setfill('0') << timeUSec << ","<< std::put_time(tm_info2, "%Y-%m-%d %H:%M:%S")<< "." << std::setw(9) << std::setfill('0') << ns<<",,P,CME," << "2" << "," << mantissa << ","<< mbofd.mDEntrySize() << "," <<mbofd.numberOfOrders()<< "," << "0" <<"\n";
                     }
                 }
-                // else if(mbofd.securityID()==423318){
-                //     double mantissa = mbofd.mDEntryPx().mantissa() * 1e-9;
-                //     message << mbofd.orderID() << "," << mbofd.mDOrderPriority() << "," << mantissa << "," << mbofd.mDDisplayQty() << "," << "CLK5" << "," << mbofd.mDUpdateAction() << "," << mbofd.mDEntryType()<<"\n";;
-                // }
 
             }
             // message <<",,P,CME,"<< temp2;
@@ -105,23 +101,6 @@ class cme_parser{
             string result = "";
             mktdata::MDIncrementalRefreshOrderBook47 temp2;
             temp2.wrapForDecode(buffer,10,blocklength,version,bufferlength);
-            mktdata::MDIncrementalRefreshOrderBook47::NoMDEntries mbofd = temp2.noMDEntries();
-            // bool hasOne = false;
-            // while(mbofd.hasNext()){
-            //     // if(hasOne) message <<",";
-            //     mbofd.next();
-            //     if(mbofd.securityID()==134373){
-            //         // message << ",{" << mbofd.orderID() << "," << mbofd.mDOrderPriority() << "," << mbofd.mDEntryPx() << "," << mbofd.mDDisplayQty() << "," << mbofd.securityID() << "," << mbofd.mDUpdateAction() << "," << mbofd.mDEntryType()<<"}";
-            //         double mantissa = mbofd.mDEntryPx().mantissa() * 1e-9;
-            //         message << mbofd.orderID() << "," << mbofd.mDOrderPriority() << "," << mantissa << "," << mbofd.mDDisplayQty() << "," << "CLM5" << "," << mbofd.mDUpdateAction() << "," << mbofd.mDEntryType()<<"\n";;
-            //     }
-            //     else if(mbofd.securityID()==423318){
-            //         double mantissa = mbofd.mDEntryPx().mantissa() * 1e-9;
-            //         message << mbofd.orderID() << "," << mbofd.mDOrderPriority() << "," << mantissa << "," << mbofd.mDDisplayQty() << "," << "CLK5" << "," << mbofd.mDUpdateAction() << "," << mbofd.mDEntryType()<<"\n";;
-            //     }
-
-            // }
-            // mbofd.forEach(message << "," << mbofd);
             message << "," << temp2;
         }
         void template54(char* buffer, uint64_t blocklength ,uint64_t bufferlength,uint64_t version,stringstream& message){
@@ -163,24 +142,11 @@ class cme_parser{
             cout << "Filesize: " << fileSize << endl;
             char byte;
             bytes.reserve(fileSize);
-            //read and insert to vector
-            // vector<char> buffer(2048);
-
-            // while (true) {
-            //     input.read(buffer.data(), buffer.size());
-            //     std::streamsize n = input.gcount();
-            //     if (n <= 0) break;
-            //     bytes.insert(bytes.end(), buffer.begin(), buffer.begin() + n);
-            // }
             vector<char> buffer(2048);
             while (input.read(buffer.data(), buffer.size())) {
                 bytes.insert(bytes.end(), buffer.begin(), buffer.begin() + input.gcount());
             }
             bytes.insert(bytes.end(), buffer.begin(), buffer.begin() + input.gcount());
-            //erase global header - 24 bytes
-            // for(int i = 0; i <24;i++){
-            //     cout << std::hex << std::setw(2) << std::setfill('0') << (int)bytes[i] << " ";
-            // }
             bytes.erase(bytes.begin(),bytes.begin()+24);
             char* buf = new char[bytes.size()];
             //Assign to help keep track of allocated memory. Assign bufPointer to buf since that will be used to represent the buffer in rest of program
@@ -204,11 +170,6 @@ class cme_parser{
             // output << "BlockLength,TemplateID,SchemaID,Version,TemplateInfo" << endl;
             // output << "OrderID, OrderPriority, Price, DisplayQuantity, Symbol, UpdateAction, EntryType" << endl;
             output << "COLLECTION_TIME,SOURCE_TIME,SEQ_NUM,TICK_TYPE,MARKET_CENTER,SIDE,PRICE,SIZE,NUMBER_ORDERS,IS_IMPLIED" << endl;
-            // output << "ChangePosition,PcapLength,MsgSize,blockLength,tempID,schemaID,Version" << endl;
-            // for(int i = 0; i <1500;i++){
-            //     if(i%16==0) cout<<endl;
-            //     cout << std::hex << std::setw(2) << std::setfill('0') << (int)bytes[i] << " ";
-            // }
             size_t byteNum = bytes.size();
             // cout << "Bytes Size: " << byteNum<<endl;
             uint16_t version = 0;
@@ -219,23 +180,9 @@ class cme_parser{
             int packetNum = 1;
             cout << byteNum << endl;
             while(byteNum>0){
-                // uint32_t pcapLength = (static_cast<uint32_t>((static_cast<uint16_t>(bytes[bytes.size()-byteNum+11])<<8) | bytes[bytes.size()-byteNum+10])<<16) | ((static_cast<uint16_t>(bytes[bytes.size()-byteNum+9])<<8) | bytes[bytes.size()-byteNum+8]);
-                // uint32_t pcapLength = (static_cast<uint32_t>((static_cast<uint16_t>(bufPointer[11])<<8) | bufPointer[10])<<16) | ((static_cast<uint16_t>(bufPointer[9])<<8) | bufPointer[8]);
                 uint32_t pcapLength = (uint32_t(uint8_t(bufPointer[11])) << 24) | (uint32_t(uint8_t(bufPointer[10])) << 16) | (uint32_t(uint8_t(bufPointer[9])) << 8 ) | (uint32_t(uint8_t(bufPointer[8])));
                 uint32_t pcapSec = (uint32_t(uint8_t(bufPointer[3])) << 24) | (uint32_t(uint8_t(bufPointer[2])) << 16) | (uint32_t(uint8_t(bufPointer[1])) << 8 ) | (uint32_t(uint8_t(bufPointer[0])));
                 uint32_t pcapUSec = (uint32_t(uint8_t(bufPointer[7])) << 24) | (uint32_t(uint8_t(bufPointer[6])) << 16) | (uint32_t(uint8_t(bufPointer[5])) << 8 ) | (uint32_t(uint8_t(bufPointer[4])));
-                // cout << "New Packet: "<<packetNum <<endl;
-                // for(int i = 0; i <16;i++){
-                //     // if(i%16==0) cout<<endl;
-                //     cout << std::hex << std::setw(2) << std::setfill('0') << (int)bytes[bytes.size()-byteNum+i] << " ";
-                // }
-                // cout << endl;
-                // for(int i = 0; i <16;i++){
-                //     // if(i%16==0) cout<<endl;
-                //     cout << std::hex << std::setw(2) << std::setfill('0') << (int)bufPointer[i] << " ";
-                // }
-                // cout << endl<<endl;
-
                 //remove packet headers. Has time stamps in seconds and microseconds, captured length, and original length. Total 16 bytes:
                 bufPointer+=16;
                 byteNum-=16;
@@ -260,12 +207,6 @@ class cme_parser{
                 tempPacket.sec = pcapSec;
                 tempPacket.uSec = pcapUSec;
                 size_t changePosition = pcapLength-42-12;
-                // output << byteNum << " "<< changePosition << endl;
-                // output << changePosition << " " << pcapLength << " " << msgSize << " " << temp.blockLength() << " " << temp.templateId() << " " << temp.schemaId() << " " << temp.version() << endl;
-                // output<< "Bytes: " <<endl;
-                // output << pcapLength << endl;
-                // output << std::hex << std::setw(2) << std::setfill('0') <<  (int)bytes[bytes.size()-byteNum] << (int)bytes[bytes.size()-byteNum+1] << endl;
-                //used to only output packets with templates 55 and 46
                 if(temp.templateId()==46){
                     packetList.push_back(tempPacket);
                 }
