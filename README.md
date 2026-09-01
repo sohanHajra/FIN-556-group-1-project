@@ -1,5 +1,8 @@
 # Venue Arbitrage and ETF Arbitrage Implementation for United States Oil Fund, LP (USO)
 
+## NOTE: 
+This repository is a public mirror of a Fall 2025 UIUC FIN 556 team project originally hosted on the university GitLab. My primary contribution was development and refinement of the ETF arbitrage strategy. I implemented inventory-aware fair-value skew, best-venue quote selection, configurable execution parameters, position-aware order logic, and related strategy debugging/testing. The original team commit history has been preserved in this mirror.
+
 ## Table of Contents
 
 - [Overview](#overview)
